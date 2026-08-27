@@ -1,0 +1,30 @@
+# Env
+.env
+.env.local
+
+# Go - binaries & build
+pemrograman-code
+pemrograman-code.exe
+*.exe
+*.out
+*.test
+/bin/
+/dist/
+/tmp/
+
+# Go - dependencies & cache
+vendor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
