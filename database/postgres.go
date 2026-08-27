@@ -4,7 +4,7 @@ import (
  "fmt"
  "time"
  "github.com/jackc/pgx/v5/pgxpool"
- "latihan-fiber/config"
+ "pemrograman-code/config"
 )
 // NewPool membuat connection pool ke PostgreSQL.
 //

@@ -1,15 +1,15 @@
 package main 
   
 import ( 
-    "fmt" 
     "log" 
-    "strings" 
     "time" 
-  
     "github.com/gofiber/fiber/v2" 
     "github.com/gofiber/fiber/v2/middleware/cors" 
     "github.com/gofiber/fiber/v2/middleware/logger" 
     "github.com/gofiber/fiber/v2/middleware/requestid" 
+    "pemrograman-code/config"
+    "pemrograman-code/database"  
+    "pemrograman-code/app/repository" 
 ) 
 func main() {
  // 1. Konfigurasi
