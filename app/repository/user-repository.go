@@ -70,17 +70,21 @@ func (r *userPostgresRepository) FindAll(
  }
  // 2) Ambil satu halaman saja. Penyaringan, pengurutan, dan pemenggalan
  // dikerjakan basis data, bukan oleh Go.
- arah := "ASC"
- if q.Order == "desc" {
- arah = "DESC"
- }
- sqlText := fmt.Sprintf(
-	`SELECT id, username, email, password, is_active, created_at
- FROM users%s
- ORDER BY %s %s
- LIMIT $%d OFFSET $%d`,
- where, kolomUrut[q.Sort], arah, len(args)+1, len(args)+2,
- )
+	arah := "ASC"
+	if q.Order == "desc" {
+		arah = "DESC"
+	}
+	kolom := kolomUrut[q.Sort]
+	if kolom == "" {
+		kolom = "id"
+	}
+	sqlText := fmt.Sprintf(
+		`SELECT id, username, email, password, is_active, created_at
+	 FROM users%s
+	 ORDER BY %s %s
+	 LIMIT $%d OFFSET $%d`,
+		where, kolom, arah, len(args)+1, len(args)+2,
+	)
  args = append(args, q.Limit, q.Offset())
  rows, err := r.pool.Query(ctx, sqlText, args...)
  if err != nil {
