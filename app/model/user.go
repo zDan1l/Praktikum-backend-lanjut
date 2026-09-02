@@ -2,21 +2,57 @@ package model
 
 import "time"
 
-// Offset menghitung berapa baris yang dilewati untuk halaman ini.
-// Perhitungan ini pindah ke sini karena kini dipakai langsung oleh SQL.
 func (q ListQuery) Offset() int {
- return (q.Page - 1) * q.Limit
+	return (q.Page - 1) * q.Limit
 }
 
+type User struct {
+	ID        int       `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+}
 
-type User struct { ID int; Username string; Email string; Password string; IsActive bool; CreatedAt time.Time }
+type ListQuery struct {
+	Page     int
+	Limit    int
+	Search   string
+	Sort     string
+	Order    string
+	IsActive *bool
+}
 
-type ListQuery struct { Page int; Limit int; Search string; Sort string; Order string; IsActive *bool }
+type Meta struct {
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	Total      int `json:"total"`
+	TotalPages int `json:"total_pages"`
+}
 
-type Meta struct { Page int; Limit int; Total int; TotalPages int }
+type WebResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
+	Meta    *Meta  `json:"meta,omitempty"`
+	Errors  any    `json:"errors,omitempty"`
+}
 
-type WebResponse struct { Success bool; Message string; Data any; Meta *Meta; Errors any } // atau tetap di main jika pilih opsi B
+type CreateUserRequest struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
 
-type CreateUserRequest struct { Username string `json:"username"`; Email string `json:"email"`; Password string `json:"password"` }
-type ReplaceUserRequest struct { Username string `json:"username"`; Email string `json:"email"`; IsActive bool `json:"is_active"` }
-type PatchUserRequest struct { Username *string `json:"username"`; Email *string `json:"email"`; IsActive *bool `json:"is_active"` }
+type ReplaceUserRequest struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	IsActive bool   `json:"is_active"`
+}
+
+type PatchUserRequest struct {
+	Username *string `json:"username"`
+	Email    *string `json:"email"`
+	IsActive *bool   `json:"is_active"`
+}
