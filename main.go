@@ -28,8 +28,8 @@ func main() {
 	defer pool.Close()
 
 	// 3. Perakitan: pool -> repository -> handler
-	userRepository := repository.NewUserRepository(pool)
-	userHandler := NewUserHandler(userRepository)
+	studentRepository := repository.NewStudentRepository(pool)
+	studentHandler := NewStudentHandler(studentRepository)
 
 	// 4. Aplikasi Fiber
 	app := fiber.New(fiber.Config{
@@ -66,13 +66,13 @@ func main() {
 		return ok(c, "server dan database berjalan", fiber.Map{"timestamp": time.Now()})
 	})
 
-	u := api.Group("/users", requireJSON)
-	u.Get("/", userHandler.List)
-	u.Get("/:id", userHandler.Get)
-	u.Post("/", userHandler.Create)
-	u.Put("/:id", userHandler.Replace)
-	u.Patch("/:id", userHandler.Patch)
-	u.Delete("/:id", userHandler.Delete)
+	s := api.Group("/students", requireJSON)
+	s.Get("/", studentHandler.List)
+	s.Get("/:id", studentHandler.Get)
+	s.Post("/", studentHandler.Create)
+	s.Put("/:id", studentHandler.Replace)
+	s.Patch("/:id", studentHandler.Patch)
+	s.Delete("/:id", studentHandler.Delete)
 
 	// Endpoint tidak dikenal
 	app.Use(func(c *fiber.Ctx) error {
