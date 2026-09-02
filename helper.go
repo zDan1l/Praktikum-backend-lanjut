@@ -51,8 +51,9 @@ func failValidation(c *fiber.Ctx, errs map[string]string) error {
 
 var allowedSort = map[string]bool{
 	"id":         true,
-	"username":   true,
-	"email":      true,
+	"nim":        true,
+	"name":       true,
+	"grade":      true,
 	"created_at": true,
 }
 
