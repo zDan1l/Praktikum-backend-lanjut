@@ -28,3 +28,7 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
+!logs/.gitkeep
+.opencode/
+soal.txt
