@@ -2,33 +2,66 @@ package config
 
 import (
 	"io"
+	"log/slog"
 	"os"
+	"path/filepath"
+	"strings"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-// GetLogWriter mengembalikan writer yang menulis ke layar sekaligus ke logs/app.log dengan rotasi.
-// Rotasi: max 5MB per file, simpan 3 backup, hapus setelah 28 hari.
-func GetLogWriter() io.Writer {
-	_ = os.MkdirAll("logs", 0755)
-	fileWriter := &lumberjack.Logger{
-		Filename:   "logs/app.log",
-		MaxSize:    5, // MB
-		MaxBackups: 3,
-		MaxAge:     28, // hari
-		Compress:   false,
+// NewLogger membuat logger terstruktur yang menulis ke dua tujuan sekaligus:
+// layar (stdout) dan file logs/app.log yang dirotasi otomatis.
+func NewLogger() *slog.Logger {
+	if err := os.MkdirAll("logs", 0o755); err != nil {
+		panic("gagal membuat folder logs: " + err.Error())
 	}
-	return io.MultiWriter(os.Stdout, fileWriter)
+
+	rotator := &lumberjack.Logger{
+		Filename:   filepath.Join("logs", "app.log"),
+		MaxSize:    10, // rotasi setiap 10 MB
+		MaxBackups: 5,
+		MaxAge:     14, // hapus file >14 hari
+		Compress:   true,
+	}
+
+	writer := io.MultiWriter(os.Stdout, rotator)
+	handler := slog.NewJSONHandler(writer, &slog.HandlerOptions{
+		Level: parseLevel(GetEnv("LOG_LEVEL", "info")),
+	})
+
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+	return logger
 }
 
-// NewFiberLogger membuat middleware logger yang mencatat 1 baris JSON per request.
-// Field wajib: request_id, method, path, status, duration.
-func NewFiberLogger(writer io.Writer) fiber.Handler {
-	return logger.New(logger.Config{
-		Output:     writer,
-		Format:     "{\"request_id\":\"${locals:requestid}\",\"method\":\"${method}\",\"path\":\"${path}\",\"status\":${status},\"duration\":\"${latency}\"}\n",
-		TimeFormat: "2006-01-02T15:04:05Z07:00",
-	})
+func parseLevel(value string) slog.Level {
+	switch strings.ToLower(value) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
+// GetLogWriter untuk kompatibilitas lama (jika masih dipakai)
+func GetLogWriter() io.Writer {
+	_ = os.MkdirAll("logs", 0755)
+	rotator := &lumberjack.Logger{
+		Filename:   filepath.Join("logs", "app.log"),
+		MaxSize:    5,
+		MaxBackups: 3,
+		MaxAge:     28,
+		Compress:   false,
+	}
+	return io.MultiWriter(os.Stdout, rotator)
+}
+
+// NewFiberLogger untuk kompatibilitas lama
+func NewFiberLogger(writer io.Writer) *slog.Logger {
+	return NewLogger()
 }
