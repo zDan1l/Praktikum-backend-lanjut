@@ -37,8 +37,4 @@ func Setup(app *fiber.App, pool *pgxpool.Pool, h *service.StudentHandler) {
 	s.Put("/:id", h.Replace)
 	s.Patch("/:id", h.Patch)
 	s.Delete("/:id", h.Delete)
-
-	app.Use(func(c *fiber.Ctx) error {
-		return helper.Fail(c, fiber.StatusNotFound, "endpoint tidak ditemukan")
-	})
 }

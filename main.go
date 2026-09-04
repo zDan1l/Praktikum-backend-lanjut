@@ -2,49 +2,57 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"pemrograman-code/app/repository"
 	"pemrograman-code/app/service"
 	"pemrograman-code/config"
 	"pemrograman-code/database"
-	"pemrograman-code/helper"
-	"pemrograman-code/middleware"
-	"pemrograman-code/route"
-
-	"github.com/gofiber/fiber/v2"
 )
 
 func main() {
-	cfg := config.LoadAppConfig()
-	writer := config.GetLogWriter()
+	config.LoadEnv()
+	logger := config.NewLogger()
 
 	pool, err := database.NewPool(context.Background())
 	if err != nil {
-		log.Fatalf("database: %v", err)
+		logger.Error("gagal terhubung ke database", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 	defer pool.Close()
 
 	studentRepo := repository.NewStudentRepository(pool)
-	studentHandler := service.NewStudentHandler(studentRepo)
+	studentService := service.NewStudentHandler(studentRepo)
 
-	app := fiber.New(fiber.Config{
-		AppName: "Praktikum Backend Lanjut - Modul 4",
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			status := fiber.StatusInternalServerError
-			pesan := "terjadi kesalahan pada server"
-			if e, ok := err.(*fiber.Error); ok {
-				status = e.Code
-				pesan = e.Message
-			}
-			return helper.Fail(c, status, pesan)
-		},
-	})
+	app := config.NewApp(logger, pool, studentService)
 
-	middleware.SetupGlobal(app, writer)
-	route.Setup(app, pool, studentHandler)
+	port := config.GetEnv("APP_PORT", "3000")
 
-	fmt.Println("Server berjalan di http://localhost:" + cfg.Port)
-	log.Fatal(app.Listen(":" + cfg.Port))
+	go func() {
+		if err := app.Listen(":" + port); err != nil {
+			logger.Error("server berhenti", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+	}()
+
+	logger.Info("server berjalan", slog.String("port", port))
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	logger.Info("sinyal berhenti diterima, menutup server")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := app.ShutdownWithContext(ctx); err != nil {
+		logger.Error("gagal menutup server dengan rapi", slog.String("error", err.Error()))
+	}
+
+	logger.Info("server berhenti dengan rapi")
 }
