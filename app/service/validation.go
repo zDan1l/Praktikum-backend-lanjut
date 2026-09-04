@@ -73,3 +73,16 @@ func ApplyPatch(current model.Student, req model.PatchStudentRequest) (model.Stu
 	}
 	return current, nil
 }
+
+// IsEmptyPatch mengecek apakah PATCH tidak mengubah apa pun.
+func IsEmptyPatch(req model.PatchStudentRequest) bool {
+	return req.NIM == nil && req.Name == nil && req.Grade == nil && req.IsActive == nil
+}
+
+// CountTotalPages menghitung total halaman (bulat ke atas).
+func CountTotalPages(total, limit int) int {
+	if limit <= 0 {
+		return 0
+	}
+	return (total + limit - 1) / limit
+}
