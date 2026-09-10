@@ -24,14 +24,14 @@ func LoadAppConfig() AppConfig {
 }
 
 // NewApp merakit aplikasi: membuat Fiber, memasang middleware, mendaftarkan route.
-func NewApp(logger *slog.Logger, pool *pgxpool.Pool, studentService *service.StudentHandler) *fiber.App {
+func NewApp(logger *slog.Logger, pool *pgxpool.Pool, studentService *service.StudentHandler, prestasiService *service.PrestasiHandler) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName:      GetEnv("APP_NAME", "Praktikum Backend Lanjut"),
 		ErrorHandler: newErrorHandler(logger),
 	})
 
 	middleware.Register(app, logger)
-	route.Setup(app, pool, studentService)
+	route.Setup(app, pool, studentService, prestasiService)
 
 	app.Use(func(c *fiber.Ctx) error {
 		return helper.Fail(c, fiber.StatusNotFound, "endpoint tidak ditemukan")

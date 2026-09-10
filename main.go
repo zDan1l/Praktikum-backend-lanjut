@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
 	"pemrograman-code/app/repository"
 	"pemrograman-code/app/service"
 	"pemrograman-code/config"
@@ -26,9 +25,11 @@ func main() {
 	defer pool.Close()
 
 	studentRepo := repository.NewStudentRepository(pool)
+	prestasiRepo := repository.NewPrestasiRepository(pool)
 	studentService := service.NewStudentHandler(studentRepo)
+	prestasiService := service.NewPrestasiHandler(prestasiRepo)
 
-	app := config.NewApp(logger, pool, studentService)
+	app := config.NewApp(logger, pool, studentService, prestasiService)
 
 	port := config.GetEnv("APP_PORT", "3000")
 

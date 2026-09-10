@@ -14,7 +14,7 @@ import (
 
 // Setup mendaftarkan semua route tanpa business rules / validasi if apapun.
 // Hanya pemetaan URL -> handler.
-func Setup(app *fiber.App, pool *pgxpool.Pool, h *service.StudentHandler) {
+func Setup(app *fiber.App, pool *pgxpool.Pool, h *service.StudentHandler, r *service.PrestasiHandler) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello, World!")
 	})
@@ -37,4 +37,12 @@ func Setup(app *fiber.App, pool *pgxpool.Pool, h *service.StudentHandler) {
 	s.Put("/:id", h.Replace)
 	s.Patch("/:id", h.Patch)
 	s.Delete("/:id", h.Delete)
+
+	p := api.Group("/prestasi", middleware.RequireJSON)
+	p.Get("/", r.List)
+	p.Get("/:id", r.Get)
+	
 }
+
+
+
