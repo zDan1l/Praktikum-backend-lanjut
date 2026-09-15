@@ -54,6 +54,8 @@ func registerPrestasiRoutes(api fiber.Router, h *service.PrestasiHandler) {
 	g := api.Group("/prestasi", middleware.RequireJSON)
 	g.Get("/", h.List)
 	g.Get("/:id", h.Get)
-	// TODO: tambah POST/PUT/PATCH/DELETE kalau perlu (lihat student sebagai contoh)
-	// g.Post("/", h.Create)
+	g.Post("/", h.Create)
+	g.Put("/:id", h.Replace)
+	g.Patch("/:id", h.Patch)
+	g.Delete("/:id", h.Delete)
 }

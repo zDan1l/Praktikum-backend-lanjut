@@ -9,9 +9,15 @@ import (
 	"pemrograman-code/app/model"
 )
 
+// Cara tambah tabel baru: copy file ini, ganti nama tabel & kolom.
+// Pastikan Scan urutannya sama dengan SELECT.
+
 type PrestasiRepository interface {
 	FindAll(ctx context.Context, q model.ListQuery) ([]model.Prestasi, int, error)
 	FindByID(ctx context.Context, id int) (model.Prestasi, error)
+	Create(ctx context.Context, p model.Prestasi) (model.Prestasi, error)
+	Update(ctx context.Context, p model.Prestasi) (model.Prestasi, error)
+	Delete(ctx context.Context, id int) error
 }
 
 var kolomPrestasi = map[string]string{
@@ -37,7 +43,6 @@ func buildPrestasiFilter(q model.ListQuery) (string, []any) {
 		where += fmt.Sprintf(" AND nama_prestasi ILIKE $%d", len(args)+1)
 		args = append(args, "%"+q.Search+"%")
 	}
-	// is_active tidak ada di tabel prestasi, jadi diabaikan agar tidak error "column does not exist"
 	return where, args
 }
 
@@ -90,4 +95,50 @@ func (r *prestasiPostgresRepository) FindByID(ctx context.Context, id int) (mode
 		return model.Prestasi{}, fmt.Errorf("mengambil prestasi: %w", err)
 	}
 	return s, nil
+}
+
+func (r *prestasiPostgresRepository) Create(ctx context.Context, p model.Prestasi) (model.Prestasi, error) {
+	err := r.pool.QueryRow(ctx,
+		`INSERT INTO prestasi (id_student, nama_prestasi, juara)
+		 VALUES ($1, $2, $3)
+		 RETURNING id, created_at`,
+		p.ID_Student, p.NamaPrestasi, p.Juara,
+	).Scan(&p.ID, &p.CreatedAt)
+	if err != nil {
+		if isForeignKeyViolation(err) {
+			return model.Prestasi{}, ErrNotFound // id_student tidak ada -> 404
+		}
+		return model.Prestasi{}, fmt.Errorf("menyimpan prestasi: %w", err)
+	}
+	return p, nil
+}
+
+func (r *prestasiPostgresRepository) Update(ctx context.Context, p model.Prestasi) (model.Prestasi, error) {
+	err := r.pool.QueryRow(ctx,
+		`UPDATE prestasi SET id_student=$1, nama_prestasi=$2, juara=$3
+		 WHERE id=$4
+		 RETURNING id, id_student, nama_prestasi, created_at, juara`,
+		p.ID_Student, p.NamaPrestasi, p.Juara, p.ID,
+	).Scan(&p.ID, &p.ID_Student, &p.NamaPrestasi, &p.CreatedAt, &p.Juara)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.Prestasi{}, ErrNotFound
+		}
+		if isForeignKeyViolation(err) {
+			return model.Prestasi{}, ErrNotFound
+		}
+		return model.Prestasi{}, fmt.Errorf("memperbarui prestasi: %w", err)
+	}
+	return p, nil
+}
+
+func (r *prestasiPostgresRepository) Delete(ctx context.Context, id int) error {
+	tag, err := r.pool.Exec(ctx, `DELETE FROM prestasi WHERE id=$1`, id)
+	if err != nil {
+		return fmt.Errorf("menghapus prestasi: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
