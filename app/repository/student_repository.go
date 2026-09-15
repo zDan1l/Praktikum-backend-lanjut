@@ -64,14 +64,9 @@ func (r *studentPostgresRepository) FindAll(ctx context.Context, q model.ListQue
 	if err != nil {
 		return nil, 0, fmt.Errorf("menghitung student: %w", err)
 	}
-	arah := "ASC"
-	if q.Order == "desc" {
-		arah = "DESC"
-	}
-	kolom := kolomUrut[q.Sort]
-	if kolom == "" {
-		kolom = "id"
-	}
+	// pakai helper biar tidak duplikat di tiap repository
+	kolom := sortCol(q.Sort, kolomUrut)
+	arah := orderDir(q.Order)
 	sqlText := fmt.Sprintf(
 		`SELECT id, nim, name, grade, is_active, created_at
 	 FROM students%s

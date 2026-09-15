@@ -48,14 +48,8 @@ func (r *prestasiPostgresRepository) FindAll(ctx context.Context, q model.ListQu
 	if err != nil {
 		return nil, 0, fmt.Errorf("menghitung prestasi: %w", err)
 	}
-	arah := "ASC"
-	if q.Order == "desc" {
-		arah = "DESC"
-	}
-	kolom := kolomPrestasi[q.Sort]
-	if kolom == "" {
-		kolom = "id"
-	}
+	kolom := sortCol(q.Sort, kolomPrestasi)
+	arah := orderDir(q.Order)
 	sqlText := fmt.Sprintf(
 		`SELECT id, id_student, nama_prestasi, created_at, juara
 	 FROM prestasi%s
