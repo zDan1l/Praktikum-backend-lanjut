@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
 	"pemrograman-code/app/repository"
 	"pemrograman-code/app/service"
 	"pemrograman-code/config"
@@ -14,9 +15,11 @@ import (
 )
 
 func main() {
+	// 1. Config & logger
 	config.LoadEnv()
 	logger := config.NewLogger()
 
+	// 2. Database pool
 	pool, err := database.NewPool(context.Background())
 	if err != nil {
 		logger.Error("gagal terhubung ke database", slog.String("error", err.Error()))
@@ -24,12 +27,17 @@ func main() {
 	}
 	defer pool.Close()
 
+	// 3. Repository (satu per tabel)
+	// Cara tambah tabel baru: copy 1 baris di bawah, ganti nama
 	studentRepo := repository.NewStudentRepository(pool)
 	prestasiRepo := repository.NewPrestasiRepository(pool)
-	studentService := service.NewStudentHandler(studentRepo)
-	prestasiService := service.NewPrestasiHandler(prestasiRepo)
 
-	app := config.NewApp(logger, pool, studentService, prestasiService)
+	// 4. Handler (satu per repository)
+	studentHandler := service.NewStudentHandler(studentRepo)
+	prestasiHandler := service.NewPrestasiHandler(prestasiRepo)
+
+	// 5. Rakit aplikasi (route terdaftar di route/route.go)
+	app := config.NewApp(logger, pool, studentHandler, prestasiHandler)
 
 	port := config.GetEnv("APP_PORT", "3000")
 

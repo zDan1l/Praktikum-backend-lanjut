@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 
-	"pemrograman-code/app/model"
 	"pemrograman-code/app/repository"
 	"pemrograman-code/helper"
 
@@ -32,18 +31,12 @@ func tampilError(c *fiber.Ctx, err error, pesanUmum string) error {
 func (r *PrestasiHandler) List(c *fiber.Ctx) error {
 	ctx, cancel := helper.ReqCtx(c)
 	defer cancel()
-	q := helper.ParseListQuery(c)
+	q := helper.ParsePrestasiQuery(c) // whitelist prestasi
 	prestasi, total, err := r.repo.FindAll(ctx, q)
 	if err != nil {
 		return helper.Fail(c, fiber.StatusInternalServerError, "gagal mengambil data prestasi")
 	}
-	totalPages := 0
-	if q.Limit > 0 {
-		totalPages = (total + q.Limit - 1) / q.Limit
-	}
-	return helper.OkList(c, "daftar prestasi berhasil diambil", prestasi, &model.Meta{
-		Page: q.Page, Limit: q.Limit, Total: total, TotalPages: totalPages,
-	})
+	return helper.SuccessList(c, "daftar prestasi berhasil diambil", prestasi, helper.NewMeta(q, total))
 }
 
 func (r *PrestasiHandler) Get(c *fiber.Ctx) error {

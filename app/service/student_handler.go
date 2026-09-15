@@ -34,18 +34,12 @@ func terjemahkanError(c *fiber.Ctx, err error, pesanUmum string) error {
 func (h *StudentHandler) List(c *fiber.Ctx) error {
 	ctx, cancel := helper.ReqCtx(c)
 	defer cancel()
-	q := helper.ParseListQuery(c)
+	q := helper.ParseStudentQuery(c) // pakai whitelist student
 	students, total, err := h.repo.FindAll(ctx, q)
 	if err != nil {
 		return helper.Fail(c, fiber.StatusInternalServerError, "gagal mengambil data student")
 	}
-	totalPages := 0
-	if q.Limit > 0 {
-		totalPages = (total + q.Limit - 1) / q.Limit
-	}
-	return helper.OkList(c, "daftar student berhasil diambil", students, &model.Meta{
-		Page: q.Page, Limit: q.Limit, Total: total, TotalPages: totalPages,
-	})
+	return helper.SuccessList(c, "daftar student berhasil diambil", students, helper.NewMeta(q, total))
 }
 
 func (h *StudentHandler) Get(c *fiber.Ctx) error {
