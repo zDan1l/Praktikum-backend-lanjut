@@ -3,13 +3,11 @@ package config
 import (
 	"log/slog"
 
-	"pemrograman-code/app/service"
 	"pemrograman-code/helper"
 	"pemrograman-code/middleware"
 	"pemrograman-code/route"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AppConfig struct {
@@ -23,7 +21,7 @@ func LoadAppConfig() AppConfig {
 	}
 }
 
-func NewApp(logger *slog.Logger, pool *pgxpool.Pool, studentHandler *service.StudentHandler, prestasiHandler *service.PrestasiHandler) *fiber.App {
+func NewApp(logger *slog.Logger, deps route.Dependencies) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName:      GetEnv("APP_NAME", "Praktikum Backend Lanjut"),
 		ErrorHandler: newErrorHandler(logger),
@@ -31,7 +29,7 @@ func NewApp(logger *slog.Logger, pool *pgxpool.Pool, studentHandler *service.Stu
 	})
 
 	middleware.Register(app, logger, GetEnv("ALLOWED_ORIGINS", ""))
-	route.Setup(app, pool, studentHandler, prestasiHandler)
+	route.Setup(app, deps)
 
 	app.Use(func(c *fiber.Ctx) error {
 		return helper.Fail(c, fiber.StatusNotFound, "endpoint tidak ditemukan")

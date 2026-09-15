@@ -12,14 +12,22 @@ import (
 	"pemrograman-code/app/service"
 	"pemrograman-code/config"
 	"pemrograman-code/database"
+	"pemrograman-code/helper"
+	"pemrograman-code/route"
 )
 
+const minSecretLength = 32
+
 func main() {
-	// 1. Config & logger
 	config.LoadEnv()
 	logger := config.NewLogger()
 
-	// 2. Database pool
+	jwtSecret := config.GetEnv("JWT_SECRET", "")
+	if len(jwtSecret) < minSecretLength {
+		logger.Error("JWT_SECRET tidak diisi atau terlalu pendek", slog.Int("minimal_karakter", minSecretLength))
+		os.Exit(1)
+	}
+
 	pool, err := database.NewPool(context.Background())
 	if err != nil {
 		logger.Error("gagal terhubung ke database", slog.String("error", err.Error()))
@@ -27,17 +35,31 @@ func main() {
 	}
 	defer pool.Close()
 
-	// 3. Repository (satu per tabel)
-	// Cara tambah tabel baru: copy 1 baris di bawah, ganti nama
+	jwtManager := helper.NewJWTManager(
+		jwtSecret,
+		config.GetEnv("JWT_ISSUER", "praktikum-backend"),
+		time.Duration(config.GetEnvInt("JWT_ACCESS_TTL_MINUTES", 15))*time.Minute,
+	)
+
+	// Repository
 	studentRepo := repository.NewStudentRepository(pool)
 	prestasiRepo := repository.NewPrestasiRepository(pool)
+	userRepo := repository.NewUserRepository(pool)
+	tokenRepo := repository.NewTokenRepository(pool)
 
-	// 4. Handler (satu per repository)
+	// Service/Handler
 	studentHandler := service.NewStudentHandler(studentRepo)
 	prestasiHandler := service.NewPrestasiHandler(prestasiRepo)
+	authService := service.NewAuthService(userRepo, tokenRepo, jwtManager,
+		time.Duration(config.GetEnvInt("JWT_REFRESH_TTL_DAYS", 7))*24*time.Hour)
 
-	// 5. Rakit aplikasi (route terdaftar di route/route.go)
-	app := config.NewApp(logger, pool, studentHandler, prestasiHandler)
+	app := config.NewApp(logger, route.Dependencies{
+		Pool:            pool,
+		JWT:             jwtManager,
+		StudentHandler:  studentHandler,
+		PrestasiHandler: prestasiHandler,
+		AuthService:     authService,
+	})
 
 	port := config.GetEnv("APP_PORT", "3000")
 

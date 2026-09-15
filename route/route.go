@@ -12,21 +12,29 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Setup cuma mapping URL -> handler, tanpa if/validasi.
-// Cara tambah resource baru (contoh: buku):
-// 1. Buat model, repository, handler di app/
-// 2. Tambah 2 baris di main.go: bukuRepo := repository.NewBukuRepository(pool); bukuHandler := service.NewBukuHandler(bukuRepo)
-// 3. Tambah 1 baris di Setup: registerBukuRoutes(api, bukuHandler)
-// 4. Tulis func registerBukuRoutes di bawah (copy dari student/prestasi)
-func Setup(app *fiber.App, pool *pgxpool.Pool, studentHandler *service.StudentHandler, prestasiHandler *service.PrestasiHandler) {
+type Dependencies struct {
+	Pool            *pgxpool.Pool
+	JWT             *helper.JWTManager
+	StudentHandler  *service.StudentHandler
+	PrestasiHandler *service.PrestasiHandler
+	AuthService     *service.AuthService
+}
+
+func Setup(app *fiber.App, deps Dependencies) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello, World!")
 	})
 
 	api := app.Group("/api/v1")
-	registerHealth(api, pool)
-	registerStudentRoutes(api, studentHandler)
-	registerPrestasiRoutes(api, prestasiHandler)
+	registerHealth(api, deps.Pool)
+	registerAuthRoutes(api, deps.AuthService, deps.JWT)
+	registerStudentRoutes(api, deps.StudentHandler, deps.JWT)
+	registerPrestasiRoutes(api, deps.PrestasiHandler, deps.JWT)
+}
+
+// alias untuk kompatibilitas lama
+func Register(app *fiber.App, deps Dependencies) {
+	Setup(app, deps)
 }
 
 func registerHealth(api fiber.Router, pool *pgxpool.Pool) {
@@ -40,8 +48,17 @@ func registerHealth(api fiber.Router, pool *pgxpool.Pool) {
 	})
 }
 
-func registerStudentRoutes(api fiber.Router, h *service.StudentHandler) {
-	g := api.Group("/students", middleware.RequireJSON)
+func registerAuthRoutes(api fiber.Router, auth *service.AuthService, jwt *helper.JWTManager) {
+	g := api.Group("/auth", middleware.RequireJSON)
+	g.Post("/register", auth.Register)
+	g.Post("/login", middleware.LoginRateLimiter(), auth.Login)
+	g.Post("/refresh", auth.Refresh)
+	g.Post("/logout", auth.Logout)
+	g.Get("/me", middleware.RequireAuth(jwt), auth.Me)
+}
+
+func registerStudentRoutes(api fiber.Router, h *service.StudentHandler, jwt *helper.JWTManager) {
+	g := api.Group("/students", middleware.RequireJSON, middleware.RequireAuth(jwt))
 	g.Get("/", h.List)
 	g.Get("/:id", h.Get)
 	g.Post("/", h.Create)
@@ -50,8 +67,8 @@ func registerStudentRoutes(api fiber.Router, h *service.StudentHandler) {
 	g.Delete("/:id", h.Delete)
 }
 
-func registerPrestasiRoutes(api fiber.Router, h *service.PrestasiHandler) {
-	g := api.Group("/prestasi", middleware.RequireJSON)
+func registerPrestasiRoutes(api fiber.Router, h *service.PrestasiHandler, jwt *helper.JWTManager) {
+	g := api.Group("/prestasi", middleware.RequireJSON, middleware.RequireAuth(jwt))
 	g.Get("/", h.List)
 	g.Get("/:id", h.Get)
 	g.Post("/", h.Create)
