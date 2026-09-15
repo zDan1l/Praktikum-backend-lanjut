@@ -31,11 +31,14 @@ func ParamID(c *fiber.Ctx) (int, bool) {
 }
 
 var allowedSort = map[string]bool{
-	"id":         true,
-	"nim":        true,
-	"name":       true,
-	"grade":      true,
-	"created_at": true,
+	"id":            true,
+	"nim":           true,
+	"name":          true,
+	"grade":         true,
+	"created_at":    true,
+	"id_student":    true,
+	"nama_prestasi": true,
+	"juara":         true,
 }
 
 // ParseListQuery membaca query string dan memberi nilai bawaan yang aman.
