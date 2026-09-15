@@ -14,17 +14,25 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 )
 
-// Register memasang seluruh middleware global.
-// Urutan penting: dieksekusi sesuai urutan pemasangan.
-func Register(app *fiber.App, logger *slog.Logger) {
+func Register(app *fiber.App, logger *slog.Logger, allowedOrigins string) {
 	app.Use(requestid.New())
 	app.Use(recover.New())
 	app.Use(helmet.New())
-	app.Use(cors.New())
+	app.Use(corsPolicy(allowedOrigins))
 	app.Use(RequestLogger(logger))
 }
 
-// RequestLogger mencatat setiap request ke logger terstruktur.
+func corsPolicy(allowedOrigins string) fiber.Handler {
+	if strings.TrimSpace(allowedOrigins) == "" {
+		allowedOrigins = "http://localhost:5173"
+	}
+	return cors.New(cors.Config{
+		AllowOrigins: allowedOrigins,
+		AllowMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+		AllowHeaders: "Origin,Content-Type,Accept,Authorization",
+	})
+}
+
 func RequestLogger(logger *slog.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
@@ -48,7 +56,6 @@ var methodsWithBody = map[string]bool{
 	fiber.MethodPatch: true,
 }
 
-// RequireJSON menolak request body yang Content-Type bukan JSON (415).
 func RequireJSON(c *fiber.Ctx) error {
 	if methodsWithBody[c.Method()] {
 		ct := c.Get("Content-Type")
