@@ -4,8 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"pemrograman-code/app/repository"
@@ -22,6 +20,8 @@ func main() {
 	config.LoadEnv()
 	logger := config.NewLogger()
 
+	// rahasia diperiksa SEBELUM server menyala: lebih baik gagal seketika
+	// daripada berjalan dengan token yang mudah dipalsukan
 	jwtSecret := config.GetEnv("JWT_SECRET", "")
 	if len(jwtSecret) < minSecretLength {
 		logger.Error("JWT_SECRET tidak diisi atau terlalu pendek", slog.Int("minimal_karakter", minSecretLength))
@@ -41,49 +41,25 @@ func main() {
 		time.Duration(config.GetEnvInt("JWT_ACCESS_TTL_MINUTES", 15))*time.Minute,
 	)
 
-	// Repository
-	studentRepo := repository.NewStudentRepository(pool)
-	prestasiRepo := repository.NewPrestasiRepository(pool)
-	userRepo := repository.NewUserRepository(pool)
-	tokenRepo := repository.NewTokenRepository(pool)
-
-	// Service/Handler
-	studentHandler := service.NewStudentHandler(studentRepo)
-	prestasiHandler := service.NewPrestasiHandler(prestasiRepo)
-	authService := service.NewAuthService(userRepo, tokenRepo, jwtManager,
-		time.Duration(config.GetEnvInt("JWT_REFRESH_TTL_DAYS", 7))*24*time.Hour)
+	studentHandler := service.NewStudentHandler(repository.NewStudentRepository(pool))
+	authService := service.NewAuthService(
+		repository.NewUserRepository(pool),
+		repository.NewTokenRepository(pool),
+		jwtManager,
+		time.Duration(config.GetEnvInt("JWT_REFRESH_TTL_DAYS", 7))*24*time.Hour,
+	)
 
 	app := config.NewApp(logger, route.Dependencies{
-		Pool:            pool,
-		JWT:             jwtManager,
-		StudentHandler:  studentHandler,
-		PrestasiHandler: prestasiHandler,
-		AuthService:     authService,
+		Pool:           pool,
+		JWT:            jwtManager,
+		StudentHandler: studentHandler,
+		AuthService:    authService,
 	})
 
 	port := config.GetEnv("APP_PORT", "3000")
-
-	go func() {
-		if err := app.Listen(":" + port); err != nil {
-			logger.Error("server berhenti", slog.String("error", err.Error()))
-			os.Exit(1)
-		}
-	}()
-
 	logger.Info("server berjalan", slog.String("port", port))
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	logger.Info("sinyal berhenti diterima, menutup server")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := app.ShutdownWithContext(ctx); err != nil {
-		logger.Error("gagal menutup server dengan rapi", slog.String("error", err.Error()))
+	if err := app.Listen(":" + port); err != nil {
+		logger.Error("server berhenti", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
-
-	logger.Info("server berhenti dengan rapi")
 }

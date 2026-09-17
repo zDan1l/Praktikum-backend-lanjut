@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"pemrograman-code/app/model"
 )
@@ -15,6 +16,7 @@ var (
 	ErrExpiredToken = errors.New("token sudah kedaluwarsa")
 )
 
+// accessClaims isi access token: username + role + claim baku JWT.
 type accessClaims struct {
 	Username string `json:"username"`
 	Role     string `json:"role"`
@@ -53,6 +55,8 @@ func (m *JWTManager) Parse(tokenString string) (model.AuthUser, error) {
 	claims := &accessClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (any, error) {
+			// WAJIB: tolak algoritma lain (anti algorithm confusion,
+			// termasuk token ber-alg "none" tanpa signature)
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("algoritma tidak diharapkan: %v", t.Header["alg"])
 			}
@@ -74,9 +78,16 @@ func (m *JWTManager) Parse(tokenString string) (model.AuthUser, error) {
 	if err != nil {
 		return model.AuthUser{}, ErrInvalidToken
 	}
-	return model.AuthUser{
-		UserID:   userID,
-		Username: claims.Username,
-		Role:     claims.Role,
-	}, nil
+	return model.AuthUser{UserID: userID, Username: claims.Username, Role: claims.Role}, nil
+}
+
+// ===== identitas pada context request =====
+
+// LocalsAuthUser kunci penyimpanan identitas di Locals (konstanta anti salah ketik).
+const LocalsAuthUser = "authUser"
+
+// CurrentUser membaca identitas yang ditaruh middleware RequireAuth.
+func CurrentUser(c *fiber.Ctx) (model.AuthUser, bool) {
+	user, ok := c.Locals(LocalsAuthUser).(model.AuthUser)
+	return user, ok
 }

@@ -3,20 +3,25 @@ package middleware
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"pemrograman-code/helper"
 )
 
+// RequireAuth memeriksa access token pada header Authorization.
+// Bila sah, identitas disimpan di Locals untuk dibaca service.
 func RequireAuth(jwtManager *helper.JWTManager) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		token, err := bearerToken(c)
-		if err != nil {
+		header := c.Get(fiber.HeaderAuthorization)
+		parts := strings.SplitN(header, " ", 2)
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || strings.TrimSpace(parts[1]) == "" {
 			c.Set("WWW-Authenticate", `Bearer realm="api"`)
 			return helper.Fail(c, fiber.StatusUnauthorized, "header Authorization tidak ada atau salah bentuk")
 		}
-		authUser, err := jwtManager.Parse(token)
+
+		authUser, err := jwtManager.Parse(strings.TrimSpace(parts[1]))
 		if err != nil {
 			c.Set("WWW-Authenticate", `Bearer realm="api"`)
 			if errors.Is(err, helper.ErrExpiredToken) {
@@ -24,31 +29,17 @@ func RequireAuth(jwtManager *helper.JWTManager) fiber.Handler {
 			}
 			return helper.Fail(c, fiber.StatusUnauthorized, "access token tidak valid")
 		}
+
 		c.Locals(helper.LocalsAuthUser, authUser)
 		return c.Next()
 	}
 }
 
-func bearerToken(c *fiber.Ctx) (string, error) {
-	header := c.Get(fiber.HeaderAuthorization)
-	if header == "" {
-		return "", errors.New("header kosong")
-	}
-	parts := strings.SplitN(header, " ", 2)
-	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-		return "", errors.New("format bukan Bearer")
-	}
-	token := strings.TrimSpace(parts[1])
-	if token == "" {
-		return "", errors.New("token kosong")
-	}
-	return token, nil
-}
-
+// LoginRateLimiter membatasi 5 percobaan login per IP per menit (anti brute force).
 func LoginRateLimiter() fiber.Handler {
 	return limiter.New(limiter.Config{
 		Max:        5,
-		Expiration: 60 * 1000000000,
+		Expiration: time.Minute,
 		KeyGenerator: func(c *fiber.Ctx) string {
 			return c.IP()
 		},

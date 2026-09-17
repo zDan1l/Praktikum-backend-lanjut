@@ -13,28 +13,34 @@ import (
 )
 
 type Dependencies struct {
-	Pool            *pgxpool.Pool
-	JWT             *helper.JWTManager
-	StudentHandler  *service.StudentHandler
-	PrestasiHandler *service.PrestasiHandler
-	AuthService     *service.AuthService
+	Pool           *pgxpool.Pool
+	JWT            *helper.JWTManager
+	StudentHandler *service.StudentHandler
+	AuthService    *service.AuthService
 }
 
 func Setup(app *fiber.App, deps Dependencies) {
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Hello, World!")
-	})
-
 	api := app.Group("/api/v1")
-	registerHealth(api, deps.Pool)
-	registerAuthRoutes(api, deps.AuthService, deps.JWT)
-	registerStudentRoutes(api, deps.StudentHandler, deps.JWT)
-	registerPrestasiRoutes(api, deps.PrestasiHandler, deps.JWT)
-}
 
-// alias untuk kompatibilitas lama
-func Register(app *fiber.App, deps Dependencies) {
-	Setup(app, deps)
+	// publik
+	registerHealth(api, deps.Pool)
+
+	// autentikasi
+	auth := api.Group("/auth", middleware.RequireJSON)
+	auth.Post("/register", deps.AuthService.Register)
+	auth.Post("/login", middleware.LoginRateLimiter(), deps.AuthService.Login)
+	auth.Post("/refresh", deps.AuthService.Refresh)
+	auth.Post("/logout", deps.AuthService.Logout)
+	auth.Get("/me", middleware.RequireAuth(deps.JWT), deps.AuthService.Me)
+
+	// wajib membawa access token
+	students := api.Group("/students", middleware.RequireJSON, middleware.RequireAuth(deps.JWT))
+	students.Get("/", deps.StudentHandler.List)
+	students.Get("/:id", deps.StudentHandler.Get)
+	students.Post("/", deps.StudentHandler.Create)
+	students.Put("/:id", deps.StudentHandler.Replace)
+	students.Patch("/:id", deps.StudentHandler.Patch)
+	students.Delete("/:id", deps.StudentHandler.Delete)
 }
 
 func registerHealth(api fiber.Router, pool *pgxpool.Pool) {
@@ -46,33 +52,4 @@ func registerHealth(api fiber.Router, pool *pgxpool.Pool) {
 		}
 		return helper.Success(c, fiber.StatusOK, "server dan database berjalan", fiber.Map{"timestamp": time.Now()})
 	})
-}
-
-func registerAuthRoutes(api fiber.Router, auth *service.AuthService, jwt *helper.JWTManager) {
-	g := api.Group("/auth", middleware.RequireJSON)
-	g.Post("/register", auth.Register)
-	g.Post("/login", middleware.LoginRateLimiter(), auth.Login)
-	g.Post("/refresh", auth.Refresh)
-	g.Post("/logout", auth.Logout)
-	g.Get("/me", middleware.RequireAuth(jwt), auth.Me)
-}
-
-func registerStudentRoutes(api fiber.Router, h *service.StudentHandler, jwt *helper.JWTManager) {
-	g := api.Group("/students", middleware.RequireJSON, middleware.RequireAuth(jwt))
-	g.Get("/", h.List)
-	g.Get("/:id", h.Get)
-	g.Post("/", h.Create)
-	g.Put("/:id", h.Replace)
-	g.Patch("/:id", h.Patch)
-	g.Delete("/:id", h.Delete)
-}
-
-func registerPrestasiRoutes(api fiber.Router, h *service.PrestasiHandler, jwt *helper.JWTManager) {
-	g := api.Group("/prestasi", middleware.RequireJSON, middleware.RequireAuth(jwt))
-	g.Get("/", h.List)
-	g.Get("/:id", h.Get)
-	g.Post("/", h.Create)
-	g.Put("/:id", h.Replace)
-	g.Patch("/:id", h.Patch)
-	g.Delete("/:id", h.Delete)
 }
