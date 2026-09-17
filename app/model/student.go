@@ -15,7 +15,6 @@ type Student struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// StudentRequest body untuk POST dan PUT (semua field dikirim).
 type StudentRequest struct {
 	NIM      string  `json:"nim"`
 	Name     string  `json:"name"`
@@ -23,7 +22,6 @@ type StudentRequest struct {
 	IsActive bool    `json:"is_active"`
 }
 
-// PatchStudentRequest body untuk PATCH (hanya field yang diubah).
 type PatchStudentRequest struct {
 	NIM      *string  `json:"nim"`
 	Name     *string  `json:"name"`
@@ -31,7 +29,6 @@ type PatchStudentRequest struct {
 	IsActive *bool    `json:"is_active"`
 }
 
-// ListQuery hasil parsing query param list endpoint.
 type ListQuery struct {
 	Page     int
 	Limit    int
@@ -48,7 +45,6 @@ type Meta struct {
 	TotalPages int `json:"total_pages"`
 }
 
-// WebResponse bentuk baku semua response API.
 type WebResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`

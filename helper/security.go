@@ -8,10 +8,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// cost 12 = 2^12 iterasi, lambat untuk penyerang, cepat untuk login sekali
 const bcryptCost = 12
 
-// dummyHash untuk timing attack: jika username tidak ada, tetap jalankan hash palsu
 var dummyHash = []byte("$2a$12$abcdefghijklmnopqrstuuLKa3Bt1TCmU/6zvhZ8x4nq1yBiuGvS")
 
 func HashPassword(plain string) (string, error) {

@@ -20,8 +20,6 @@ func main() {
 	config.LoadEnv()
 	logger := config.NewLogger()
 
-	// rahasia diperiksa SEBELUM server menyala: lebih baik gagal seketika
-	// daripada berjalan dengan token yang mudah dipalsukan
 	jwtSecret := config.GetEnv("JWT_SECRET", "")
 	if len(jwtSecret) < minSecretLength {
 		logger.Error("JWT_SECRET tidak diisi atau terlalu pendek", slog.Int("minimal_karakter", minSecretLength))

@@ -49,7 +49,6 @@ func (r *UserRepository) FindByID(ctx context.Context, id int) (model.User, erro
 	return u, nil
 }
 
-// FindByUsername dipakai saat login; tidak membedakan huruf besar/kecil.
 func (r *UserRepository) FindByUsername(ctx context.Context, username string) (model.User, error) {
 	var u model.User
 	err := r.pool.QueryRow(ctx,

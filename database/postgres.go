@@ -9,8 +9,6 @@ import (
 	"pemrograman-code/config"
 )
 
-// NewPool membuat connection pool ke PostgreSQL lalu ping untuk
-// memastikan kredensial benar dan server bisa dihubungi.
 func NewPool(ctx context.Context) (*pgxpool.Pool, error) {
 	dsn := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",

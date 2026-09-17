@@ -19,8 +19,6 @@ func NewStudentHandler(repo *repository.StudentRepository) *StudentHandler {
 	return &StudentHandler{repo: repo}
 }
 
-// ===== validasi (murni tanpa Fiber, gampang di-test) =====
-
 func ValidateStudent(req model.StudentRequest) map[string]string {
 	errs := map[string]string{}
 	if strings.TrimSpace(req.NIM) == "" {
@@ -38,8 +36,6 @@ func ValidateStudent(req model.StudentRequest) map[string]string {
 	return errs
 }
 
-// ApplyPatch menerapkan perubahan PATCH pada student lama (merge),
-// lalu memvalidasi hasilnya.
 func ApplyPatch(current model.Student, req model.PatchStudentRequest) (model.Student, map[string]string) {
 	if req.NIM != nil {
 		if strings.TrimSpace(*req.NIM) == "" {
@@ -69,9 +65,6 @@ func IsEmptyPatch(req model.PatchStudentRequest) bool {
 	return req.NIM == nil && req.Name == nil && req.Grade == nil && req.IsActive == nil
 }
 
-// ===== handler =====
-
-// failFromError menerjemahkan error repository jadi response HTTP.
 func failFromError(c *fiber.Ctx, err error, pesanUmum string) error {
 	switch {
 	case errors.Is(err, repository.ErrNotFound):

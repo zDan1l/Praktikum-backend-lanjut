@@ -14,9 +14,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// ===== environment =====
-
-// LoadEnv memuat file .env. Bila tidak ada, pakai environment sistem.
 func LoadEnv() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("file .env tidak ditemukan, memakai environment sistem")
@@ -42,28 +39,22 @@ func GetEnvInt(key string, fallback int) int {
 	return n
 }
 
-// ===== logger =====
-
-// NewLogger logger terstruktur JSON ke stdout.
 func NewLogger() *slog.Logger {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 	return logger
 }
 
-// ===== aplikasi Fiber =====
-
 func NewApp(logger *slog.Logger, deps route.Dependencies) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName:      GetEnv("APP_NAME", "Praktikum Backend Lanjut"),
 		ErrorHandler: errorHandler(logger),
-		BodyLimit:    1 * 1024 * 1024, // batas body 1 MB
+		BodyLimit:    1 * 1024 * 1024,
 	})
 
 	middleware.Register(app, logger, GetEnv("ALLOWED_ORIGINS", ""))
 	route.Setup(app, deps)
 
-	// semua route yang tidak terdaftar jatuh ke sini
 	app.Use(func(c *fiber.Ctx) error {
 		return helper.Fail(c, fiber.StatusNotFound, "endpoint tidak ditemukan")
 	})

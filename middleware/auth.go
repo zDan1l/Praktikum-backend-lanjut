@@ -10,8 +10,6 @@ import (
 	"pemrograman-code/helper"
 )
 
-// RequireAuth memeriksa access token pada header Authorization.
-// Bila sah, identitas disimpan di Locals untuk dibaca service.
 func RequireAuth(jwtManager *helper.JWTManager) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		header := c.Get(fiber.HeaderAuthorization)
@@ -35,7 +33,6 @@ func RequireAuth(jwtManager *helper.JWTManager) fiber.Handler {
 	}
 }
 
-// LoginRateLimiter membatasi 5 percobaan login per IP per menit (anti brute force).
 func LoginRateLimiter() fiber.Handler {
 	return limiter.New(limiter.Config{
 		Max:        5,

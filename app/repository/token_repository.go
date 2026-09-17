@@ -29,7 +29,6 @@ func (r *TokenRepository) Save(ctx context.Context, t model.RefreshToken) error 
 	return nil
 }
 
-// FindActive hanya mengembalikan token yang belum dicabut dan belum kedaluwarsa.
 func (r *TokenRepository) FindActive(ctx context.Context, tokenHash string) (model.RefreshToken, error) {
 	var t model.RefreshToken
 	err := r.pool.QueryRow(ctx,

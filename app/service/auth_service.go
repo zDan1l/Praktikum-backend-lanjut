@@ -40,7 +40,6 @@ func (s *AuthService) Register(c *fiber.Ctx) error {
 		return helper.FailValidation(c, errs)
 	}
 
-	// password di-hash; role selalu ditentukan server (anti mass assignment)
 	hashed, err := helper.HashPassword(req.Password)
 	if err != nil {
 		return helper.Fail(c, fiber.StatusInternalServerError, "gagal memproses password")
@@ -72,8 +71,7 @@ func (s *AuthService) Login(c *fiber.Ctx) error {
 
 	user, err := s.users.FindByUsername(ctx, req.Username)
 	if err != nil {
-		// hash palsu agar waktu tanggap mirip (anti user enumeration),
-		// lalu jawab dengan pesan yang SAMA PERSIS
+
 		helper.VerifyDummyPassword(req.Password)
 		return helper.Fail(c, fiber.StatusUnauthorized, "username atau password salah")
 	}
@@ -113,7 +111,6 @@ func (s *AuthService) Refresh(c *fiber.Ctx) error {
 		return helper.Fail(c, fiber.StatusUnauthorized, "akun tidak dapat dipakai")
 	}
 
-	// ROTASI: token lama langsung dicabut, diganti pasangan baru
 	if err := s.tokens.Revoke(ctx, hash); err != nil {
 		return helper.Fail(c, fiber.StatusInternalServerError, "gagal memperbarui token")
 	}
@@ -153,7 +150,6 @@ func (s *AuthService) Me(c *fiber.Ctx) error {
 	return helper.Success(c, fiber.StatusOK, "profil berhasil diambil", user)
 }
 
-// issueTokenPair membuat access token (JWT) + refresh token (acak).
 func (s *AuthService) issueTokenPair(ctx context.Context, user model.User) (model.TokenPair, error) {
 	accessToken, err := s.jwt.GenerateAccess(user)
 	if err != nil {
@@ -163,7 +159,7 @@ func (s *AuthService) issueTokenPair(ctx context.Context, user model.User) (mode
 	if err != nil {
 		return model.TokenPair{}, err
 	}
-	// yang disimpan di database hash-nya, bukan tokennya
+
 	err = s.tokens.Save(ctx, model.RefreshToken{
 		UserID:    user.ID,
 		TokenHash: helper.SHA256Hex(refreshToken),

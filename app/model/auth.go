@@ -6,7 +6,6 @@ type RegisterRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
-	// Role tidak ada - cegah mass assignment
 }
 
 type LoginRequest struct {

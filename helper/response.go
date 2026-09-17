@@ -6,9 +6,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// Bentuk baku semua response:
-// {"success":true|false, "message":"...", "data":..., "meta":..., "errors":...}
-
 func Success(c *fiber.Ctx, status int, message string, data any) error {
 	return c.Status(status).JSON(model.WebResponse{
 		Success: true, Message: message, Data: data,

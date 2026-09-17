@@ -10,7 +10,6 @@ import (
 	"pemrograman-code/app/model"
 )
 
-// kolom yang boleh dipakai untuk ?sort= (whitelist, cegah SQL injection)
 var kolomUrut = map[string]bool{
 	"id": true, "nim": true, "name": true, "grade": true, "created_at": true,
 }
@@ -23,7 +22,6 @@ func NewStudentRepository(pool *pgxpool.Pool) *StudentRepository {
 	return &StudentRepository{pool: pool}
 }
 
-// buildFilter menyusun WHERE dinamis: search (ILIKE) dan is_active.
 func buildFilter(q model.ListQuery) (string, []any) {
 	where := " WHERE 1 = 1"
 	args := []any{}

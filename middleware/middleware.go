@@ -13,12 +13,11 @@ import (
 )
 
 func Register(app *fiber.App, logger *slog.Logger, allowedOrigins string) {
-	app.Use(recover.New()) // pulihkan dari panic agar server tidak mati
+	app.Use(recover.New())
 	app.Use(corsPolicy(allowedOrigins))
 	app.Use(RequestLogger(logger))
 }
 
-// corsPolicy membatasi origin yang boleh memanggil API.
 func corsPolicy(allowedOrigins string) fiber.Handler {
 	if strings.TrimSpace(allowedOrigins) == "" {
 		allowedOrigins = "http://localhost:5173"
@@ -45,7 +44,6 @@ func RequestLogger(logger *slog.Logger) fiber.Handler {
 	}
 }
 
-// RequireJSON menolak body non-JSON untuk POST/PUT/PATCH (415).
 func RequireJSON(c *fiber.Ctx) error {
 	switch c.Method() {
 	case fiber.MethodPost, fiber.MethodPut, fiber.MethodPatch:
