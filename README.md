@@ -1,6 +1,6 @@
-# Pemrograman Backend Lanjut — Pertemuan 5 (Authentication & Security)
+# Pemrograman Backend Lanjut — Pertemuan 6 (Authorization & RBAC)
 
-API **CRUD Students + Auth (JWT)** dengan **Fiber v2 + PostgreSQL (pgxpool)**.
+API **CRUD Students + Auth (JWT) + Comments (RBAC)** dengan **Fiber v2 + PostgreSQL (pgxpool)**.
 Base URL: `http://localhost:3000/api/v1`
 
 ## Struktur
@@ -8,13 +8,13 @@ Base URL: `http://localhost:3000/api/v1`
 main.go            -> wiring: env, logger, DB pool, JWT, repository, handler, route
 config/config.go   -> env (.env), logger, pembuatan app Fiber
 database/postgres.go -> pgxpool + ping
-app/model/         -> entitas & DTO (Student, User, Auth, ListQuery, Meta, WebResponse)
-app/repository/    -> query SQL (common.go, student, user, token)
-app/service/       -> handler + validasi (student_handler.go, auth_service.go, auth_rules.go)
+app/model/         -> entitas & DTO (Student, User, Auth, Comment, ListQuery, Meta, WebResponse)
+app/repository/    -> query SQL (common.go, student, user, token, comment)
+app/service/       -> handler + validasi + cek ownership (student_handler, auth_service, comment_handler)
 helper/            -> response, request, jwt, security (bcrypt)
-middleware/        -> recover, cors, logger, RequireJSON, RequireAuth, rate limiter
+middleware/        -> recover, cors, logger, RequireJSON, RequireAuth, RequirePermission, rate limiter
 route/route.go     -> pendaftaran semua endpoint
-migrations/        -> 001_create_students.sql, 002_auth.sql
+migrations/        -> 001_create_students.sql, 002_auth.sql, 003_rbac.sql, 004_articles_comments.sql
 ```
 
 ## Setup
@@ -25,6 +25,8 @@ cp .env.example .env
 createdb praktikum_backend
 psql -d praktikum_backend -f migrations/001_create_students.sql
 psql -d praktikum_backend -f migrations/002_auth.sql
+psql -d praktikum_backend -f migrations/003_rbac.sql
+psql -d praktikum_backend -f migrations/004_articles_comments.sql
 go run .
 curl -i http://localhost:3000/api/v1/health   # 200 jika DB hidup, 503 jika mati
 ```
@@ -61,8 +63,52 @@ ALLOWED_ORIGINS=http://localhost:5173
 | PUT | /students/:id | semua field | 200, 404, 409 |
 | PATCH | /students/:id | salah satu field | 200, 400 |
 | DELETE | /students/:id | - | 204, 404 |
+| GET | /articles/:articleId/comments | daftar komentar artikel (permission `read comment`) | 200, 401, 403, 404 |
+| POST | /articles/:articleId/comments | `content` (permission `create comment`) | 201, 401, 403, 404, 422 |
+| PUT | /articles/:articleId/comments/:id | ubah `content`, cuma pemilik/admin (permission `update comment`) | 200, 401, 403, 404, 422 |
+| DELETE | /articles/:articleId/comments/:id | hapus, cuma pemilik/admin (permission `delete comment`) | 204, 401, 403, 404 |
 
-Semua endpoint /students membutuhkan header `Authorization: Bearer <access_token>`.
+Semua endpoint /students dan /articles/:articleId/comments membutuhkan header `Authorization: Bearer <access_token>`.
+
+## RBAC (Tugas Mandiri Modul 6)
+Skema pakai tabel relasional: `roles` → `role_permissions` → `permissions`, user merujuk role lewat `users.role_id`.
+
+Distribusi permission pada resource `comment`:
+
+| Role | create | read | update | delete |
+|------|--------|------|--------|--------|
+| admin | ya | ya | ya (siapapun) | ya (siapapun) |
+| editor | ya | ya | ya (milik sendiri) | ya (milik sendiri) |
+| viewer | ya | ya | tidak | tidak |
+
+- **Authentication** (`middleware/auth.go`): verifikasi JWT lalu ambil user + role **terkini dari DB** (perubahan role langsung berlaku, token lama tidak membawa role basi).
+- **Authorization** (`middleware/authorize.go`): cek `role_permissions` di DB. **Fail closed** — kalau DB error, akses tetap ditolak (403).
+- **Ownership** (`app/service/comment_handler.go`): update/delete komentar harus pemilik; admin bisa milik siapapun. Update hanya mengubah field `content`.
+- 401 = identitas tidak terverifikasi (token hilang/expired/invalid), 403 = identitas valid tapi tidak berhak.
+
+Kenapa ownership dicek di service layer, bukan middleware? Karena keputusannya bergantung pada isi data (`author_id` komentar) yang harus dibaca dari DB dulu. Middleware hanya cocok untuk keputusan berbasis metadata request (siapa user, permission apa). Service layer memang sudah membaca datanya, jadi cukup sekali baca dan tidak mencampur tanggung jawab antara auth, authz, dan ownership.
+
+### User uji (password: `password123`)
+| Username | Role |
+|----------|------|
+| admin1 | admin |
+| editor1 | editor |
+| viewer1 | viewer |
+
+### Tabel ekspektasi pengujian
+| User | Aksi | Milik | Expected |
+|------|------|-------|----------|
+| tanpa token | semua | - | 401 |
+| viewer | read comment | siapapun | 200 |
+| viewer | create comment | - | 201 |
+| viewer | update comment | milik sendiri | 403 (tidak punya permission update) |
+| viewer | delete comment | - | 403 (tidak punya permission delete) |
+| editor | update comment | milik sendiri | 200 |
+| editor | update comment | milik orang lain | 403 (bukan pemilik) |
+| editor | delete comment | milik sendiri | 204 |
+| admin | update/delete comment | siapapun | 200 / 204 |
+
+Contoh perintah pengujian lengkap ada di bagian bawah `curl-ex.txt`.
 
 ## Keamanan yang Diterapkan
 - Password di-hash **bcrypt** (cost 12), tidak pernah keluar di JSON (`json:"-"`)
