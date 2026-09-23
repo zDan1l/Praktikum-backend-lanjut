@@ -40,8 +40,9 @@ func main() {
 	)
 
 	studentHandler := service.NewStudentHandler(repository.NewStudentRepository(pool))
+	userRepo := repository.NewUserRepository(pool)
 	authService := service.NewAuthService(
-		repository.NewUserRepository(pool),
+		userRepo,
 		repository.NewTokenRepository(pool),
 		jwtManager,
 		time.Duration(config.GetEnvInt("JWT_REFRESH_TTL_DAYS", 7))*24*time.Hour,
@@ -50,6 +51,7 @@ func main() {
 	app := config.NewApp(logger, route.Dependencies{
 		Pool:           pool,
 		JWT:            jwtManager,
+		Users:          userRepo,
 		StudentHandler: studentHandler,
 		AuthService:    authService,
 	})

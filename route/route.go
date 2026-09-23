@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"pemrograman-code/app/repository"
 	"pemrograman-code/app/service"
 	"pemrograman-code/helper"
 	"pemrograman-code/middleware"
@@ -15,6 +16,7 @@ import (
 type Dependencies struct {
 	Pool           *pgxpool.Pool
 	JWT            *helper.JWTManager
+	Users          *repository.UserRepository
 	StudentHandler *service.StudentHandler
 	AuthService    *service.AuthService
 }
@@ -29,9 +31,9 @@ func Setup(app *fiber.App, deps Dependencies) {
 	auth.Post("/login", middleware.LoginRateLimiter(), deps.AuthService.Login)
 	auth.Post("/refresh", deps.AuthService.Refresh)
 	auth.Post("/logout", deps.AuthService.Logout)
-	auth.Get("/me", middleware.RequireAuth(deps.JWT), deps.AuthService.Me)
+	auth.Get("/me", middleware.RequireAuth(deps.JWT, deps.Users), deps.AuthService.Me)
 
-	students := api.Group("/students", middleware.RequireJSON, middleware.RequireAuth(deps.JWT))
+	students := api.Group("/students", middleware.RequireJSON, middleware.RequireAuth(deps.JWT, deps.Users))
 	students.Get("/", deps.StudentHandler.List)
 	students.Get("/:id", deps.StudentHandler.Get)
 	students.Post("/", deps.StudentHandler.Create)
