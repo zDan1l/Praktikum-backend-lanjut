@@ -46,7 +46,7 @@ func (s *AuthService) Register(c *fiber.Ctx) error {
 	}
 	created, err := s.users.Create(ctx, model.User{
 		Username: req.Username, Email: req.Email,
-		Password: hashed, Role: "user", IsActive: true,
+		Password: hashed, IsActive: true,
 	})
 	if errors.Is(err, repository.ErrDuplicate) {
 		return helper.Fail(c, fiber.StatusConflict, "username sudah dipakai")
