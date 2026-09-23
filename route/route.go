@@ -19,6 +19,7 @@ type Dependencies struct {
 	Users          *repository.UserRepository
 	StudentHandler *service.StudentHandler
 	AuthService    *service.AuthService
+	CommentHandler *service.CommentHandler
 }
 
 func Setup(app *fiber.App, deps Dependencies) {
@@ -40,6 +41,15 @@ func Setup(app *fiber.App, deps Dependencies) {
 	students.Put("/:id", deps.StudentHandler.Replace)
 	students.Patch("/:id", deps.StudentHandler.Patch)
 	students.Delete("/:id", deps.StudentHandler.Delete)
+
+	// Tugas mandiri modul 6: comments dengan RBAC.
+	// authenticate dulu (401 kalau token bermasalah), baru authorize (403 kalau
+	// role tidak punya permission), kepemilikan komentar dicek di service layer.
+	comments := api.Group("/articles/:articleId/comments", middleware.RequireJSON, middleware.RequireAuth(deps.JWT, deps.Users))
+	comments.Get("/", middleware.RequirePermission(deps.Pool, "read", "comment"), deps.CommentHandler.List)
+	comments.Post("/", middleware.RequirePermission(deps.Pool, "create", "comment"), deps.CommentHandler.Create)
+	comments.Put("/:id", middleware.RequirePermission(deps.Pool, "update", "comment"), deps.CommentHandler.Update)
+	comments.Delete("/:id", middleware.RequirePermission(deps.Pool, "delete", "comment"), deps.CommentHandler.Delete)
 }
 
 func registerHealth(api fiber.Router, pool *pgxpool.Pool) {

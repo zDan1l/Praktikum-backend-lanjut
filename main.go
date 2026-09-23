@@ -40,6 +40,7 @@ func main() {
 	)
 
 	studentHandler := service.NewStudentHandler(repository.NewStudentRepository(pool))
+	commentHandler := service.NewCommentHandler(repository.NewCommentRepository(pool))
 	userRepo := repository.NewUserRepository(pool)
 	authService := service.NewAuthService(
 		userRepo,
@@ -54,6 +55,7 @@ func main() {
 		Users:          userRepo,
 		StudentHandler: studentHandler,
 		AuthService:    authService,
+		CommentHandler: commentHandler,
 	})
 
 	port := config.GetEnv("APP_PORT", "3000")
