@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"log/slog"
 	"strings"
 	"time"
@@ -32,14 +33,36 @@ func corsPolicy(allowedOrigins string) fiber.Handler {
 func RequestLogger(logger *slog.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
+		requestID := helper.RequestID(c)
 		err := c.Next()
-		logger.Info("http_request",
+
+		// ErrorHandler baru jalan setelah middleware selesai,
+		// jadi status response belum terisi saat ada error.
+		status := c.Response().StatusCode()
+		if err != nil {
+			var appErr *helper.AppError
+			if errors.As(err, &appErr) {
+				status = appErr.Status
+			} else {
+				status = fiber.StatusInternalServerError
+			}
+		}
+
+		attrs := []any{
+			slog.String("request_id", requestID),
 			slog.String("method", c.Method()),
 			slog.String("path", c.Path()),
-			slog.Int("status", c.Response().StatusCode()),
+			slog.Int("status", status),
 			slog.Duration("duration", time.Since(start)),
 			slog.String("ip", c.IP()),
-		)
+		}
+		if user, ok := helper.CurrentUser(c); ok {
+			attrs = append(attrs,
+				slog.Int("user_id", user.UserID),
+				slog.String("role", user.Role),
+			)
+		}
+		logger.Info("http_request", attrs...)
 		return err
 	}
 }
