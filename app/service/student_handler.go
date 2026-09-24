@@ -58,6 +58,12 @@ func (h *StudentHandler) List(c *fiber.Ctx) error {
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
 
+	// Format dipilih SEBELUM query. Format tak dikenal tidak membebani DB.
+	format, err := helper.Negotiate(c, helper.FormatJSON, helper.FormatCSV)
+	if err != nil {
+		return err
+	}
+
 	q, err := helper.ParseCursorQuery(c)
 	if err != nil {
 		return err
@@ -66,6 +72,10 @@ func (h *StudentHandler) List(c *fiber.Ctx) error {
 	rows, err := h.repo.FindAfterCursor(ctx, q)
 	if err != nil {
 		return helper.Internal(err)
+	}
+
+	if format == helper.FormatCSV {
+		return helper.WriteStudentsCSV(c, rows)
 	}
 
 	hasMore := len(rows) > q.Limit
