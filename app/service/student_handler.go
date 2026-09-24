@@ -58,12 +58,28 @@ func (h *StudentHandler) List(c *fiber.Ctx) error {
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
 
-	q := helper.ParseQuery(c)
-	students, total, err := h.repo.FindAll(ctx, q)
+	q, err := helper.ParseCursorQuery(c)
+	if err != nil {
+		return err
+	}
+
+	rows, err := h.repo.FindAfterCursor(ctx, q)
 	if err != nil {
 		return helper.Internal(err)
 	}
-	return helper.SuccessList(c, "daftar student berhasil diambil", students, helper.NewMeta(q, total))
+
+	hasMore := len(rows) > q.Limit
+	if hasMore {
+		rows = rows[:q.Limit]
+	}
+
+	meta := &model.CursorMeta{Limit: q.Limit, HasMore: hasMore}
+	if hasMore && len(rows) > 0 {
+		last := rows[len(rows)-1]
+		meta.NextCursor = helper.EncodeCursor(last.CreatedAt, last.ID)
+	}
+
+	return helper.SuccessCursor(c, "daftar student berhasil diambil", rows, meta)
 }
 
 func (h *StudentHandler) Get(c *fiber.Ctx) error {

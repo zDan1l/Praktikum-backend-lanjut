@@ -80,6 +80,53 @@ func (r *StudentRepository) FindAll(ctx context.Context, q model.ListQuery) ([]m
 	return hasil, total, rows.Err()
 }
 
+// FindAfterCursor memakai keyset pagination. id ikut dibandingkan karena
+// created_at tidak dijamin unik. limit+1 untuk penanda has_more.
+func (r *StudentRepository) FindAfterCursor(
+	ctx context.Context, q model.CursorQuery,
+) ([]model.Student, error) {
+	args := []any{}
+	where := " WHERE 1 = 1"
+
+	if q.Search != "" {
+		args = append(args, "%"+q.Search+"%")
+		where += fmt.Sprintf(" AND name ILIKE $%d", len(args))
+	}
+	if q.IsActive != nil {
+		args = append(args, *q.IsActive)
+		where += fmt.Sprintf(" AND is_active = $%d", len(args))
+	}
+	if q.After != nil {
+		args = append(args, q.After.CreatedAt, q.After.ID)
+		where += fmt.Sprintf(" AND (created_at, id) < ($%d, $%d)",
+			len(args)-1, len(args))
+	}
+
+	args = append(args, q.Limit+1)
+	query := fmt.Sprintf(
+		"SELECT id, nim, name, grade, is_active, created_at FROM students%s ORDER BY created_at DESC, id DESC LIMIT $%d",
+		where, len(args))
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("mengambil daftar student: %w", err)
+	}
+	defer rows.Close()
+
+	result := []model.Student{}
+	for rows.Next() {
+		var s model.Student
+		if err := rows.Scan(&s.ID, &s.NIM, &s.Name, &s.Grade, &s.IsActive, &s.CreatedAt); err != nil {
+			return nil, fmt.Errorf("membaca baris student: %w", err)
+		}
+		result = append(result, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("membaca hasil query: %w", err)
+	}
+	return result, nil
+}
+
 func (r *StudentRepository) FindByID(ctx context.Context, id int) (model.Student, error) {
 	var s model.Student
 	err := r.pool.QueryRow(ctx,
