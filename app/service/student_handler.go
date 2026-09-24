@@ -19,46 +19,22 @@ func NewStudentHandler(repo *repository.StudentRepository) *StudentHandler {
 	return &StudentHandler{repo: repo}
 }
 
-func ValidateStudent(req model.StudentRequest) map[string]string {
-	errs := map[string]string{}
-	if strings.TrimSpace(req.NIM) == "" {
-		errs["nim"] = "wajib diisi"
-	}
-	if strings.TrimSpace(req.Name) == "" {
-		errs["name"] = "wajib diisi"
-	}
-	if req.Grade < 0 || req.Grade > 100 {
-		errs["grade"] = "harus 0 - 100"
-	}
-	if len(errs) == 0 {
-		return nil
-	}
-	return errs
-}
-
-func ApplyPatch(current model.Student, req model.PatchStudentRequest) (model.Student, map[string]string) {
+// ApplyPatch menggabungkan saja. Bentuk sudah diperiksa tag sebelum
+// fungsi ini dipanggil.
+func ApplyPatch(current model.Student, req model.PatchStudentRequest) model.Student {
 	if req.NIM != nil {
-		if strings.TrimSpace(*req.NIM) == "" {
-			return current, map[string]string{"nim": "tidak boleh kosong"}
-		}
 		current.NIM = strings.TrimSpace(*req.NIM)
 	}
 	if req.Name != nil {
-		if strings.TrimSpace(*req.Name) == "" {
-			return current, map[string]string{"name": "tidak boleh kosong"}
-		}
 		current.Name = strings.TrimSpace(*req.Name)
 	}
 	if req.Grade != nil {
-		if *req.Grade < 0 || *req.Grade > 100 {
-			return current, map[string]string{"grade": "harus 0 - 100"}
-		}
 		current.Grade = *req.Grade
 	}
 	if req.IsActive != nil {
 		current.IsActive = *req.IsActive
 	}
-	return current, nil
+	return current
 }
 
 func IsEmptyPatch(req model.PatchStudentRequest) bool {
@@ -113,7 +89,7 @@ func (h *StudentHandler) Create(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return helper.BadRequest("body harus berupa JSON yang valid")
 	}
-	if errs := ValidateStudent(req); errs != nil {
+	if errs := helper.ValidateStruct(req); errs != nil {
 		return helper.Validation(errs)
 	}
 	baru, err := h.repo.Create(ctx, model.Student{
@@ -140,7 +116,7 @@ func (h *StudentHandler) Replace(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return helper.BadRequest("body harus berupa JSON yang valid")
 	}
-	if errs := ValidateStudent(req); errs != nil {
+	if errs := helper.ValidateStruct(req); errs != nil {
 		return helper.Validation(errs)
 	}
 	hasil, err := h.repo.Update(ctx, model.Student{
@@ -165,6 +141,9 @@ func (h *StudentHandler) Patch(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return helper.BadRequest("body harus berupa JSON yang valid")
 	}
+	if errs := helper.ValidateStruct(req); errs != nil {
+		return helper.Validation(errs)
+	}
 	if IsEmptyPatch(req) {
 		return helper.BadRequest("tidak ada field yang diubah")
 	}
@@ -172,10 +151,7 @@ func (h *StudentHandler) Patch(c *fiber.Ctx) error {
 	if err != nil {
 		return translateStudentError(err, "student")
 	}
-	merged, errs := ApplyPatch(saatIni, req)
-	if errs != nil {
-		return helper.Validation(errs)
-	}
+	merged := ApplyPatch(saatIni, req)
 	hasil, err := h.repo.Update(ctx, merged)
 	if err != nil {
 		return translateStudentError(err, "student")
