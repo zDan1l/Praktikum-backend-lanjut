@@ -18,16 +18,16 @@ func RequireAuth(jwtManager *helper.JWTManager, users *repository.UserRepository
 		parts := strings.SplitN(header, " ", 2)
 		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || strings.TrimSpace(parts[1]) == "" {
 			c.Set("WWW-Authenticate", `Bearer realm="api"`)
-			return helper.Fail(c, fiber.StatusUnauthorized, "header Authorization tidak ada atau salah bentuk")
+			return helper.Unauthorized("header Authorization tidak ada atau salah bentuk")
 		}
 
 		claims, err := jwtManager.Parse(strings.TrimSpace(parts[1]))
 		if err != nil {
 			c.Set("WWW-Authenticate", `Bearer realm="api"`)
 			if errors.Is(err, helper.ErrExpiredToken) {
-				return helper.Fail(c, fiber.StatusUnauthorized, "access token kedaluwarsa")
+				return helper.Unauthorized("access token kedaluwarsa")
 			}
-			return helper.Fail(c, fiber.StatusUnauthorized, "access token tidak valid")
+			return helper.Unauthorized("access token tidak valid")
 		}
 
 		// Ambil user + role terkini dari DB, bukan cuma dari isi JWT,
@@ -36,10 +36,10 @@ func RequireAuth(jwtManager *helper.JWTManager, users *repository.UserRepository
 		defer cancel()
 		user, err := users.FindByID(ctx, claims.UserID)
 		if err != nil {
-			return helper.Fail(c, fiber.StatusUnauthorized, "user tidak ditemukan")
+			return helper.Unauthorized("user tidak ditemukan")
 		}
 		if !user.IsActive {
-			return helper.Fail(c, fiber.StatusForbidden, "akun dinonaktifkan")
+			return helper.Forbidden("akun dinonaktifkan")
 		}
 
 		c.Locals(helper.LocalsAuthUser, model.AuthUser{
@@ -58,7 +58,7 @@ func LoginRateLimiter() fiber.Handler {
 		},
 		LimitReached: func(c *fiber.Ctx) error {
 			c.Set("Retry-After", "60")
-			return helper.Fail(c, fiber.StatusTooManyRequests, "terlalu banyak percobaan login, coba lagi dalam satu menit")
+			return helper.TooManyRequests("terlalu banyak percobaan login, coba lagi dalam satu menit")
 		},
 	})
 }

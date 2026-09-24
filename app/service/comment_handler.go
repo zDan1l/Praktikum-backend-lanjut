@@ -55,19 +55,19 @@ func (h *CommentHandler) List(c *fiber.Ctx) error {
 
 	articleID, err := strconv.Atoi(c.Params("articleId"))
 	if err != nil || articleID < 1 {
-		return helper.Fail(c, fiber.StatusBadRequest, "articleId harus berupa angka positif")
+		return helper.BadRequest("articleId harus berupa angka positif")
 	}
 	ada, err := h.repo.ArticleExists(ctx, articleID)
 	if err != nil {
-		return helper.Fail(c, fiber.StatusInternalServerError, "gagal mengecek artikel")
+		return helper.Internal(err)
 	}
 	if !ada {
-		return helper.Fail(c, fiber.StatusNotFound, "artikel tidak ditemukan")
+		return helper.NotFound("artikel tidak ditemukan")
 	}
 
 	comments, err := h.repo.ListByArticle(ctx, articleID)
 	if err != nil {
-		return helper.Fail(c, fiber.StatusInternalServerError, "gagal mengambil komentar")
+		return helper.Internal(err)
 	}
 	return helper.Success(c, fiber.StatusOK, "daftar komentar berhasil diambil", comments)
 }
@@ -78,24 +78,24 @@ func (h *CommentHandler) Create(c *fiber.Ctx) error {
 
 	articleID, err := strconv.Atoi(c.Params("articleId"))
 	if err != nil || articleID < 1 {
-		return helper.Fail(c, fiber.StatusBadRequest, "articleId harus berupa angka positif")
+		return helper.BadRequest("articleId harus berupa angka positif")
 	}
 
 	var req model.CommentRequest
 	if err := c.BodyParser(&req); err != nil {
-		return helper.Fail(c, fiber.StatusBadRequest, "body harus berupa JSON yang valid")
+		return helper.BadRequest("body harus berupa JSON yang valid")
 	}
 	req.Content = strings.TrimSpace(req.Content)
 	if req.Content == "" {
-		return helper.FailValidation(c, map[string]string{"content": "wajib diisi"})
+		return helper.Validation(map[string]string{"content": "wajib diisi"})
 	}
 
 	ada, err := h.repo.ArticleExists(ctx, articleID)
 	if err != nil {
-		return helper.Fail(c, fiber.StatusInternalServerError, "gagal mengecek artikel")
+		return helper.Internal(err)
 	}
 	if !ada {
-		return helper.Fail(c, fiber.StatusNotFound, "artikel tidak ditemukan")
+		return helper.NotFound("artikel tidak ditemukan")
 	}
 
 	user, _ := helper.CurrentUser(c)
@@ -105,7 +105,7 @@ func (h *CommentHandler) Create(c *fiber.Ctx) error {
 		Content:   req.Content,
 	})
 	if err != nil {
-		return helper.Fail(c, fiber.StatusInternalServerError, "gagal menyimpan komentar")
+		return helper.Internal(err)
 	}
 	return helper.Created(c, "komentar berhasil dibuat", comment,
 		"/api/v1/articles/"+strconv.Itoa(articleID)+"/comments/"+strconv.Itoa(comment.ID))
@@ -114,21 +114,21 @@ func (h *CommentHandler) Create(c *fiber.Ctx) error {
 func (h *CommentHandler) Update(c *fiber.Ctx) error {
 	_, id, comment, ok := h.ambilKomentar(c)
 	if !ok {
-		return helper.Fail(c, fiber.StatusNotFound, "komentar tidak ditemukan")
+		return helper.NotFound("komentar tidak ditemukan")
 	}
 
 	user, _ := helper.CurrentUser(c)
 	if !h.bolehUbah(comment, user) {
-		return helper.Fail(c, fiber.StatusForbidden, "akses ditolak: bukan pemilik komentar ini")
+		return helper.Forbidden("akses ditolak: bukan pemilik komentar ini")
 	}
 
 	var req model.CommentRequest
 	if err := c.BodyParser(&req); err != nil {
-		return helper.Fail(c, fiber.StatusBadRequest, "body harus berupa JSON yang valid")
+		return helper.BadRequest("body harus berupa JSON yang valid")
 	}
 	req.Content = strings.TrimSpace(req.Content)
 	if req.Content == "" {
-		return helper.FailValidation(c, map[string]string{"content": "wajib diisi"})
+		return helper.Validation(map[string]string{"content": "wajib diisi"})
 	}
 
 	ctx, cancel := helper.RequestContext(c)
@@ -137,10 +137,10 @@ func (h *CommentHandler) Update(c *fiber.Ctx) error {
 	// Update hanya boleh mengubah field content.
 	hasil, err := h.repo.UpdateContent(ctx, id, req.Content)
 	if errors.Is(err, repository.ErrNotFound) {
-		return helper.Fail(c, fiber.StatusNotFound, "komentar tidak ditemukan")
+		return helper.NotFound("komentar tidak ditemukan")
 	}
 	if err != nil {
-		return helper.Fail(c, fiber.StatusInternalServerError, "gagal memperbarui komentar")
+		return helper.Internal(err)
 	}
 	return helper.Success(c, fiber.StatusOK, "komentar berhasil diperbarui", hasil)
 }
@@ -148,19 +148,19 @@ func (h *CommentHandler) Update(c *fiber.Ctx) error {
 func (h *CommentHandler) Delete(c *fiber.Ctx) error {
 	_, id, comment, ok := h.ambilKomentar(c)
 	if !ok {
-		return helper.Fail(c, fiber.StatusNotFound, "komentar tidak ditemukan")
+		return helper.NotFound("komentar tidak ditemukan")
 	}
 
 	user, _ := helper.CurrentUser(c)
 	if !h.bolehUbah(comment, user) {
-		return helper.Fail(c, fiber.StatusForbidden, "akses ditolak: bukan pemilik komentar ini")
+		return helper.Forbidden("akses ditolak: bukan pemilik komentar ini")
 	}
 
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
 
 	if err := h.repo.Delete(ctx, id); err != nil {
-		return helper.Fail(c, fiber.StatusInternalServerError, "gagal menghapus komentar")
+		return helper.Internal(err)
 	}
 	return helper.NoContent(c)
 }

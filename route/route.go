@@ -57,7 +57,7 @@ func registerHealth(api fiber.Router, pool *pgxpool.Pool) {
 		ctx, cancel := context.WithTimeout(c.UserContext(), 2*time.Second)
 		defer cancel()
 		if err := pool.Ping(ctx); err != nil {
-			return helper.Fail(c, fiber.StatusServiceUnavailable, "database tidak dapat dihubungi")
+			return helper.ServiceUnavailable("database tidak dapat dihubungi")
 		}
 		return helper.Success(c, fiber.StatusOK, "server dan database berjalan", fiber.Map{"timestamp": time.Now()})
 	})

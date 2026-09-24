@@ -65,14 +65,16 @@ func IsEmptyPatch(req model.PatchStudentRequest) bool {
 	return req.NIM == nil && req.Name == nil && req.Grade == nil && req.IsActive == nil
 }
 
-func failFromError(c *fiber.Ctx, err error, pesanUmum string) error {
+// translateError menerjemahkan error repository menjadi AppError.
+// Tidak kenal fiber.Ctx. Yang tidak dikenali menjadi Internal (fail closed).
+func translateStudentError(err error, entity string) error {
 	switch {
 	case errors.Is(err, repository.ErrNotFound):
-		return helper.Fail(c, fiber.StatusNotFound, "student tidak ditemukan")
+		return helper.NotFound(entity + " tidak ditemukan")
 	case errors.Is(err, repository.ErrDuplicate):
-		return helper.Fail(c, fiber.StatusConflict, "nim sudah dipakai")
+		return helper.Conflict("nim sudah dipakai")
 	default:
-		return helper.Fail(c, fiber.StatusInternalServerError, pesanUmum)
+		return helper.Internal(err)
 	}
 }
 
@@ -83,7 +85,7 @@ func (h *StudentHandler) List(c *fiber.Ctx) error {
 	q := helper.ParseQuery(c)
 	students, total, err := h.repo.FindAll(ctx, q)
 	if err != nil {
-		return helper.Fail(c, fiber.StatusInternalServerError, "gagal mengambil data student")
+		return helper.Internal(err)
 	}
 	return helper.SuccessList(c, "daftar student berhasil diambil", students, helper.NewMeta(q, total))
 }
@@ -94,11 +96,11 @@ func (h *StudentHandler) Get(c *fiber.Ctx) error {
 
 	id, valid := helper.ParamID(c)
 	if !valid {
-		return helper.Fail(c, fiber.StatusBadRequest, "id harus berupa angka positif")
+		return helper.BadRequest("id harus berupa angka positif")
 	}
 	student, err := h.repo.FindByID(ctx, id)
 	if err != nil {
-		return failFromError(c, err, "gagal mengambil data student")
+		return translateStudentError(err, "student")
 	}
 	return helper.Success(c, fiber.StatusOK, "student ditemukan", student)
 }
@@ -109,10 +111,10 @@ func (h *StudentHandler) Create(c *fiber.Ctx) error {
 
 	var req model.StudentRequest
 	if err := c.BodyParser(&req); err != nil {
-		return helper.Fail(c, fiber.StatusBadRequest, "body harus berupa JSON yang valid")
+		return helper.BadRequest("body harus berupa JSON yang valid")
 	}
 	if errs := ValidateStudent(req); errs != nil {
-		return helper.FailValidation(c, errs)
+		return helper.Validation(errs)
 	}
 	baru, err := h.repo.Create(ctx, model.Student{
 		NIM:      strings.TrimSpace(req.NIM),
@@ -121,7 +123,7 @@ func (h *StudentHandler) Create(c *fiber.Ctx) error {
 		IsActive: req.IsActive,
 	})
 	if err != nil {
-		return failFromError(c, err, "gagal menyimpan student")
+		return translateStudentError(err, "student")
 	}
 	return helper.Created(c, "student berhasil dibuat", baru, "/api/v1/students/"+strconv.Itoa(baru.ID))
 }
@@ -132,21 +134,21 @@ func (h *StudentHandler) Replace(c *fiber.Ctx) error {
 
 	id, valid := helper.ParamID(c)
 	if !valid {
-		return helper.Fail(c, fiber.StatusBadRequest, "id harus berupa angka positif")
+		return helper.BadRequest("id harus berupa angka positif")
 	}
 	var req model.StudentRequest
 	if err := c.BodyParser(&req); err != nil {
-		return helper.Fail(c, fiber.StatusBadRequest, "body harus berupa JSON yang valid")
+		return helper.BadRequest("body harus berupa JSON yang valid")
 	}
 	if errs := ValidateStudent(req); errs != nil {
-		return helper.FailValidation(c, errs)
+		return helper.Validation(errs)
 	}
 	hasil, err := h.repo.Update(ctx, model.Student{
 		ID: id, NIM: strings.TrimSpace(req.NIM), Name: strings.TrimSpace(req.Name),
 		Grade: req.Grade, IsActive: req.IsActive,
 	})
 	if err != nil {
-		return failFromError(c, err, "gagal memperbarui student")
+		return translateStudentError(err, "student")
 	}
 	return helper.Success(c, fiber.StatusOK, "student berhasil diganti seluruhnya", hasil)
 }
@@ -157,26 +159,26 @@ func (h *StudentHandler) Patch(c *fiber.Ctx) error {
 
 	id, valid := helper.ParamID(c)
 	if !valid {
-		return helper.Fail(c, fiber.StatusBadRequest, "id harus berupa angka positif")
+		return helper.BadRequest("id harus berupa angka positif")
 	}
 	var req model.PatchStudentRequest
 	if err := c.BodyParser(&req); err != nil {
-		return helper.Fail(c, fiber.StatusBadRequest, "body harus berupa JSON yang valid")
+		return helper.BadRequest("body harus berupa JSON yang valid")
 	}
 	if IsEmptyPatch(req) {
-		return helper.Fail(c, fiber.StatusBadRequest, "tidak ada field yang diubah")
+		return helper.BadRequest("tidak ada field yang diubah")
 	}
 	saatIni, err := h.repo.FindByID(ctx, id)
 	if err != nil {
-		return failFromError(c, err, "gagal mengambil data student")
+		return translateStudentError(err, "student")
 	}
 	merged, errs := ApplyPatch(saatIni, req)
 	if errs != nil {
-		return helper.FailValidation(c, errs)
+		return helper.Validation(errs)
 	}
 	hasil, err := h.repo.Update(ctx, merged)
 	if err != nil {
-		return failFromError(c, err, "gagal memperbarui student")
+		return translateStudentError(err, "student")
 	}
 	return helper.Success(c, fiber.StatusOK, "student berhasil diperbarui sebagian", hasil)
 }
@@ -187,10 +189,10 @@ func (h *StudentHandler) Delete(c *fiber.Ctx) error {
 
 	id, valid := helper.ParamID(c)
 	if !valid {
-		return helper.Fail(c, fiber.StatusBadRequest, "id harus berupa angka positif")
+		return helper.BadRequest("id harus berupa angka positif")
 	}
 	if err := h.repo.Delete(ctx, id); err != nil {
-		return failFromError(c, err, "gagal menghapus student")
+		return translateStudentError(err, "student")
 	}
 	return helper.NoContent(c)
 }

@@ -16,7 +16,7 @@ func RequirePermission(pool *pgxpool.Pool, action, resource string) fiber.Handle
 	return func(c *fiber.Ctx) error {
 		user, ok := helper.CurrentUser(c)
 		if !ok || user.RoleID == 0 {
-			return helper.Fail(c, fiber.StatusForbidden, "akses ditolak: role tidak ditemukan")
+			return helper.Forbidden("akses ditolak: role tidak ditemukan")
 		}
 
 		var punya bool
@@ -34,10 +34,10 @@ func RequirePermission(pool *pgxpool.Pool, action, resource string) fiber.Handle
 
 		// Fail closed: kalau DB error, akses tetap ditolak.
 		if err != nil {
-			return helper.Fail(c, fiber.StatusForbidden, "akses ditolak: gagal memeriksa permission")
+			return helper.Forbidden("akses ditolak: gagal memeriksa permission")
 		}
 		if !punya {
-			return helper.Fail(c, fiber.StatusForbidden,
+			return helper.Forbidden(
 				fmt.Sprintf("akses ditolak: tidak punya permission '%s' pada '%s'", action, resource))
 		}
 		return c.Next()
