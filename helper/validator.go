@@ -142,6 +142,10 @@ func messageFor(fe validator.FieldError) string {
 		return "hanya boleh huruf, angka, titik, dan garis bawah"
 	case "nim":
 		return "nim harus 10 digit angka"
+	case "datetime":
+		return "format tanggal harus " + fe.Param()
+	case "url":
+		return "format tautan tidak valid"
 	case "strongpassword":
 		if value, ok := fe.Value().(string); ok {
 			if msg := passwordStrength(value); msg != "" {
