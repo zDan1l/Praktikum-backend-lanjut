@@ -1,20 +1,21 @@
-# Pemrograman Backend Lanjut — Pertemuan 6 (Authorization & RBAC)
+# Pemrograman Backend Lanjut — Pertemuan 7 (Portofolio Student: PostgreSQL + MongoDB)
 
-API **CRUD Students + Auth (JWT) + Comments (RBAC)** dengan **Fiber v2 + PostgreSQL (pgxpool)**.
+API **CRUD Students + Auth (JWT) + Comments (RBAC) + Portofolio (MongoDB)** dengan **Fiber v2 + PostgreSQL (pgxpool) + MongoDB**.
 Base URL: `http://localhost:3000/api/v1`
 
 ## Struktur
 ```
-main.go            -> wiring: env, logger, DB pool, JWT, repository, handler, route
+main.go            -> wiring: env, logger, DB pool, JWT, Mongo, repository, handler, route
 config/config.go   -> env (.env), logger, pembuatan app Fiber
 database/postgres.go -> pgxpool + ping
-app/model/         -> entitas & DTO (Student, User, Auth, Comment, ListQuery, Meta, WebResponse)
-app/repository/    -> query SQL (common.go, student, user, token, comment)
-app/service/       -> handler + validasi + cek ownership (student_handler, auth_service, comment_handler)
+database/mongo.go  -> koneksi MongoDB + ping
+app/model/         -> entitas & DTO (Student, Portfolio, User, Auth, Comment, ListQuery, Meta, WebResponse)
+app/repository/    -> query SQL/Mongo (common.go, student, user, token, comment, portfolio)
+app/service/       -> handler + validasi + cek ownership (student_handler, auth_service, comment_handler, portfolio_handler)
 helper/            -> response, request, jwt, security (bcrypt)
 middleware/        -> recover, cors, logger, RequireJSON, RequireAuth, RequirePermission, rate limiter
 route/route.go     -> pendaftaran semua endpoint
-migrations/        -> 001_create_students.sql, 002_auth.sql, 003_rbac.sql, 004_articles_comments.sql
+migrations/        -> 001_create_students.sql ... 005_cursor_index.sql, 006_student_portfolios.js
 ```
 
 ## Setup
@@ -31,6 +32,10 @@ go run .
 curl -i http://localhost:3000/api/v1/health   # 200 jika DB hidup, 503 jika mati
 ```
 
+MongoDB harus hidup di `MONGO_URI` (bawaan `mongodb://localhost:27017`). Index
+`student_portfolios` dibuat otomatis saat startup; versi manualnya ada di
+`migrations/006_student_portfolios.js` (`mongosh praktikum_backend migrations/006_student_portfolios.js`).
+
 ## Variabel Environment
 ```
 APP_PORT=3000
@@ -41,6 +46,9 @@ DB_PASSWORD=xxx
 DB_NAME=praktikum_backend
 DB_SSLMODE=disable
 DB_MAX_CONNS=10
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB=praktikum_backend
+MONGO_TIMEOUT_SECONDS=10
 JWT_SECRET=hasil-openssl-rand-hex-32
 JWT_ISSUER=praktikum-backend
 JWT_ACCESS_TTL_MINUTES=15
@@ -63,12 +71,81 @@ ALLOWED_ORIGINS=http://localhost:5173
 | PUT | /students/:id | semua field | 200, 404, 409 |
 | PATCH | /students/:id | salah satu field | 200, 400 |
 | DELETE | /students/:id | - | 204, 404 |
+| GET | /students/:id/portfolio | portofolio milik student | 200, 400, 401, 404 |
+| PUT | /students/:id/portfolio | buat/ganti seluruh portofolio (upsert) | 200, 400, 401, 404, 422 |
+| POST | /students/:id/portfolio/projects | tambah proyek (maks 20, atomik) | 201, 400, 401, 404, 409, 422 |
+| DELETE | /students/:id/portfolio/projects/:projectId | hapus proyek (`$pull`) | 204, 400, 401, 404 |
+| GET | /portfolios/stats/technologies | 10 teknologi teratas (aggregation) | 200, 401 |
 | GET | /articles/:articleId/comments | daftar komentar artikel (permission `read comment`) | 200, 401, 403, 404 |
 | POST | /articles/:articleId/comments | `content` (permission `create comment`) | 201, 401, 403, 404, 422 |
 | PUT | /articles/:articleId/comments/:id | ubah `content`, cuma pemilik/admin (permission `update comment`) | 200, 401, 403, 404, 422 |
 | DELETE | /articles/:articleId/comments/:id | hapus, cuma pemilik/admin (permission `delete comment`) | 204, 401, 403, 404 |
 
 Semua endpoint /students dan /articles/:articleId/comments membutuhkan header `Authorization: Bearer <access_token>`.
+
+## Portofolio Student (Tugas Mandiri Modul 7)
+Data mahasiswa tetap di PostgreSQL (`students`); portofolio disimpan di MongoDB
+collection `student_portfolios`. Setiap mahasiswa punya tepat **satu** dokumen:
+
+```json
+{
+  "student_id": 9,
+  "headline": "Backend Engineer",
+  "bio": "Suka Go dan MongoDB",
+  "projects": [
+    {
+      "id": "6ae119d42f520bc3d8561611",
+      "title": "API Portofolio",
+      "technologies": ["Go", "Fiber", "MongoDB"],
+      "link": "https://example.com/api",
+      "year": 2026
+    }
+  ],
+  "certificates": [
+    {"name": "Backend Fundamental", "issuer": "Dicoding", "date": "2025-08-17"}
+  ]
+}
+```
+
+- **Model bebas tipe driver**: `app/model/portfolio.go` hanya memakai tipe Go
+  (`string`, `int`, slice). Konversi `bson.ObjectID`/dokumen Mongo hanya ada di
+  `app/repository/portfolio_repository.go`.
+- **Satu mahasiswa satu portofolio** dijaga unique index `uniq_student_id`
+  (`student_id: 1, unique: true`), bukan hanya pengecekan kode. Ada juga index
+  multikey `projects_technologies_idx` untuk pencarian berdasarkan teknologi.
+- **PUT** memverifikasi `students.id` ke PostgreSQL lebih dulu (404 bila tidak
+  ada), lalu melakukan `ReplaceOne` + `upsert`. Bila dua PUT bersamaan membuat
+  dokumen baru, duplikat unique index ditangani dengan replace ulang.
+- **POST proyek** memakai pola `projects.19` (analog `replies.49`): filter update
+  hanya cocok bila slot ke-20 belum terisi, sehingga batas 20 proyek atomik.
+  Bila penuh → 409 `CONFLICT`.
+- **DELETE proyek** memakai `$pull` berdasarkan `_id` proyek. `projectId` wajib
+  ObjectID 24 karakter heksadesimal (400 bila tidak valid, 404 bila tidak ada).
+- **Stats** menjalankan aggregation: `$unwind: "$projects"` → `$unwind:
+  "$projects.technologies"` → `$group` hitung kemunculan → `$sort` → `$limit 10`.
+- Seluruh endpoint portofolio membutuhkan `Authorization: Bearer <access_token>`
+  seperti endpoint `/students`.
+
+Contoh:
+```bash
+TOKEN="PASTE_ACCESS_TOKEN"
+
+curl -s -X PUT localhost:3000/api/v1/students/9/portfolio \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"headline":"Backend Engineer","bio":"Suka Go","projects":[{"title":"API Portofolio","technologies":["Go","MongoDB"],"link":"https://example.com","year":2026}],"certificates":[{"name":"Backend Fundamental","issuer":"Dicoding","date":"2025-08-17"}]}'
+
+curl -s localhost:3000/api/v1/students/9/portfolio -H "Authorization: Bearer $TOKEN"
+
+curl -s -X POST localhost:3000/api/v1/students/9/portfolio/projects \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"title":"CLI Todo","technologies":["Go","Redis"],"link":"","year":2024}'
+
+curl -s -X DELETE localhost:3000/api/v1/students/9/portfolio/projects/OBJECTID \
+  -H "Authorization: Bearer $TOKEN"
+
+curl -s localhost:3000/api/v1/portfolios/stats/technologies \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 ## RBAC (Tugas Mandiri Modul 6)
 Skema pakai tabel relasional: `roles` → `role_permissions` → `permissions`, user merujuk role lewat `users.role_id`.
