@@ -33,13 +33,37 @@ func main() {
 	}
 	defer pool.Close()
 
+	mongoClient, mongoDB, err := database.NewMongo(context.Background())
+	if err != nil {
+		logger.Error("gagal terhubung ke MongoDB", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := mongoClient.Disconnect(ctx); err != nil {
+			logger.Error("gagal memutus MongoDB", slog.String("error", err.Error()))
+		}
+	}()
+
+	portfolioRepo := repository.NewPortfolioRepository(mongoDB)
+	indexCtx, cancelIndex := context.WithTimeout(context.Background(), 10*time.Second)
+	err = portfolioRepo.EnsureIndexes(indexCtx)
+	cancelIndex()
+	if err != nil {
+		logger.Error("gagal menyiapkan index portofolio", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	jwtManager := helper.NewJWTManager(
 		jwtSecret,
 		config.GetEnv("JWT_ISSUER", "praktikum-backend"),
 		time.Duration(config.GetEnvInt("JWT_ACCESS_TTL_MINUTES", 15))*time.Minute,
 	)
 
-	studentHandler := service.NewStudentHandler(repository.NewStudentRepository(pool))
+	studentRepo := repository.NewStudentRepository(pool)
+	studentHandler := service.NewStudentHandler(studentRepo)
+	portfolioHandler := service.NewPortfolioHandler(portfolioRepo, studentRepo)
 	commentHandler := service.NewCommentHandler(repository.NewCommentRepository(pool))
 	userRepo := repository.NewUserRepository(pool)
 	authService := service.NewAuthService(
@@ -50,12 +74,13 @@ func main() {
 	)
 
 	app := config.NewApp(logger, route.Dependencies{
-		Pool:           pool,
-		JWT:            jwtManager,
-		Users:          userRepo,
-		StudentHandler: studentHandler,
-		AuthService:    authService,
-		CommentHandler: commentHandler,
+		Pool:             pool,
+		JWT:              jwtManager,
+		Users:            userRepo,
+		StudentHandler:   studentHandler,
+		PortfolioHandler: portfolioHandler,
+		AuthService:      authService,
+		CommentHandler:   commentHandler,
 	})
 
 	port := config.GetEnv("APP_PORT", "3000")

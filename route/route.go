@@ -14,12 +14,13 @@ import (
 )
 
 type Dependencies struct {
-	Pool           *pgxpool.Pool
-	JWT            *helper.JWTManager
-	Users          *repository.UserRepository
-	StudentHandler *service.StudentHandler
-	AuthService    *service.AuthService
-	CommentHandler *service.CommentHandler
+	Pool             *pgxpool.Pool
+	JWT              *helper.JWTManager
+	Users            *repository.UserRepository
+	StudentHandler   *service.StudentHandler
+	PortfolioHandler *service.PortfolioHandler
+	AuthService      *service.AuthService
+	CommentHandler   *service.CommentHandler
 }
 
 func Setup(app *fiber.App, deps Dependencies) {
@@ -41,6 +42,15 @@ func Setup(app *fiber.App, deps Dependencies) {
 	students.Put("/:id", deps.StudentHandler.Replace)
 	students.Patch("/:id", deps.StudentHandler.Patch)
 	students.Delete("/:id", deps.StudentHandler.Delete)
+
+	// Tugas mandiri modul 7: portofolio student (PostgreSQL + MongoDB).
+	students.Get("/:id/portfolio", deps.PortfolioHandler.Get)
+	students.Put("/:id/portfolio", deps.PortfolioHandler.Replace)
+	students.Post("/:id/portfolio/projects", deps.PortfolioHandler.AddProject)
+	students.Delete("/:id/portfolio/projects/:projectId", deps.PortfolioHandler.DeleteProject)
+
+	portfolios := api.Group("/portfolios", middleware.RequireJSON, middleware.RequireAuth(deps.JWT, deps.Users))
+	portfolios.Get("/stats/technologies", deps.PortfolioHandler.TopTechnologies)
 
 	// Tugas mandiri modul 6: comments dengan RBAC.
 	// authenticate dulu (401 kalau token bermasalah), baru authorize (403 kalau
