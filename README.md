@@ -1,4 +1,4 @@
-# Pemrograman Backend Lanjut — Pertemuan 7 (Portofolio Student: PostgreSQL + MongoDB)
+# Pemrograman Backend Lanjut (Portofolio Student: PostgreSQL + MongoDB)
 
 API **CRUD Students + Auth (JWT) + Comments (RBAC) + Portofolio (MongoDB)** dengan **Fiber v2 + PostgreSQL (pgxpool) + MongoDB**.
 Base URL: `http://localhost:3000/api/v1`
