@@ -15,7 +15,9 @@ app/service/       -> handler + validasi + cek ownership (student_handler, auth_
 helper/            -> response, request, jwt, security (bcrypt)
 middleware/        -> recover, cors, logger, RequireJSON, RequireAuth, RequirePermission, rate limiter
 route/route.go     -> pendaftaran semua endpoint
-migrations/        -> 001_create_students.sql ... 005_cursor_index.sql, 006_student_portfolios.js
+migrations/        -> 001_create_students.sql ... 010_credits_version.sql, 006_student_portfolios.js
+tests/integration/ -> integration test (build tag integration) terhadap praktikum_backend_test
+docs/              -> hasil go tool swag init (docs.go, swagger.json, swagger.yaml)
 ```
 
 ## Setup
@@ -36,6 +38,47 @@ MongoDB harus hidup di `MONGO_URI` (bawaan `mongodb://localhost:27017`). Index
 `student_portfolios` dibuat otomatis saat startup; versi manualnya ada di
 `migrations/006_student_portfolios.js` (`mongosh praktikum_backend migrations/006_student_portfolios.js`).
 
+## Menjalankan Seluruh Sistem dengan Docker (Modul 12)
+Cukup Docker; Go, PostgreSQL, MongoDB, dan Redis tidak perlu dipasang.
+```bash
+cp .env.example .env            # isi DB_PASSWORD dan JWT_SECRET (wajib)
+docker compose up -d --build    # api, worker, postgres, mongo, redis
+docker compose ps               # tunggu api berstatus healthy
+curl http://localhost:8080/api/v1/health
+```
+- API di port **8080** (diteruskan ke 3000 di container). Database dan Redis
+  hanya dapat dihubungi dari dalam network compose.
+- Migration `migrations/*.sql` dijalankan image postgres **hanya** saat volume
+  `pgdata` masih kosong. Migration baru: `docker compose exec -T postgres psql -U postgres -d praktikum_backend < migrations/0xx.sql`.
+- `docker compose down` mempertahankan data; `docker compose down -v` menghapus seluruh volume.
+- Menjadikan akun admin: `docker compose exec postgres psql -U postgres -d praktikum_backend -c "UPDATE users SET role_id = (SELECT id FROM roles WHERE name='admin') WHERE username='admin';"`
+
+## Dokumentasi API (Swagger)
+```bash
+go tool swag init               # WAJIB diulang setiap anotasi berubah
+```
+Dengan `SWAGGER_ENABLED=true`, Swagger UI tersedia di
+`http://localhost:3000/swagger/index.html` (atau port 8080 via compose).
+Klik **Authorize** lalu isi `Bearer <access_token>`. Bawaannya mati (404),
+karena dokumentasi lengkap di production adalah peta gratis bagi penyerang.
+Folder `docs/` hasil swag **di-commit** karena diimpor saat compile.
+
+## Testing (Modul 12)
+```bash
+go test ./...                                   # unit + component test, tanpa database
+go test -shuffle=on -count=5 ./app/service/     # mendeteksi ketergantungan urutan
+go test -coverprofile=coverage.out ./app/service/ && go tool cover -func=coverage.out
+
+# integration test: butuh database TERPISAH yang namanya berakhiran _test
+psql -U postgres -c "CREATE DATABASE praktikum_backend_test;"
+echo 'TEST_DATABASE_URL=postgres://postgres:<password>@localhost:5432/praktikum_backend_test?sslmode=disable' > .env.test
+go test -tags=integration -count=1 -v ./tests/integration/
+```
+`TestMain` menjalankan ulang seluruh migration (semuanya idempoten) dan
+menolak berjalan pada database yang namanya tidak berakhiran `_test`.
+Race detector (`-race`) butuh gcc 64-bit; di Windows tanpa gcc dapat dijalankan
+di container: `docker run --rm -v "$PWD:/src" -w /src golang:1.26 go test -race ./app/service/`.
+
 ## Variabel Environment
 ```
 APP_PORT=3000
@@ -54,6 +97,8 @@ JWT_ISSUER=praktikum-backend
 JWT_ACCESS_TTL_MINUTES=15
 JWT_REFRESH_TTL_DAYS=7
 ALLOWED_ORIGINS=http://localhost:5173
+REDIS_ADDR=localhost:6379
+SWAGGER_ENABLED=false
 ```
 
 ## Kontrak API
