@@ -21,6 +21,10 @@ type Dependencies struct {
 	PortfolioHandler *service.PortfolioHandler
 	AuthService      *service.AuthService
 	CommentHandler   *service.CommentHandler
+
+	// Modul 11: KRS dan notifikasi background job.
+	CourseService       *service.CourseService
+	NotificationService *service.NotificationService
 }
 
 func Setup(app *fiber.App, deps Dependencies) {
@@ -60,6 +64,22 @@ func Setup(app *fiber.App, deps Dependencies) {
 	comments.Post("/", middleware.RequirePermission(deps.Pool, "create", "comment"), deps.CommentHandler.Create)
 	comments.Put("/:id", middleware.RequirePermission(deps.Pool, "update", "comment"), deps.CommentHandler.Update)
 	comments.Delete("/:id", middleware.RequirePermission(deps.Pool, "delete", "comment"), deps.CommentHandler.Delete)
+
+	// --- KRS (Modul 11): setiap perubahan dicatat ke outbox dalam transaction ---
+	courses := api.Group("/courses", middleware.RequireJSON, middleware.RequireAuth(deps.JWT, deps.Users))
+	courses.Post("/:id/enroll", deps.CourseService.Enroll)
+	courses.Delete("/:id/enroll", deps.CourseService.Drop)
+	courses.Patch("/:id", deps.CourseService.UpdateQuota)
+
+	enrollments := api.Group("/enrollments", middleware.RequireJSON, middleware.RequireAuth(deps.JWT, deps.Users))
+	enrollments.Post("/swap", deps.CourseService.Swap)
+
+	// --- notifikasi (diisi oleh worker, dibaca lewat API) ---
+	notifications := api.Group("/notifications", middleware.RequireJSON, middleware.RequireAuth(deps.JWT, deps.Users))
+	notifications.Get("/mine", deps.NotificationService.Mine)
+
+	admin := api.Group("/admin", middleware.RequireJSON, middleware.RequireAuth(deps.JWT, deps.Users))
+	admin.Get("/queue", middleware.RequirePermission(deps.Pool, "monitor", "queue"), deps.NotificationService.Monitor)
 }
 
 func registerHealth(api fiber.Router, pool *pgxpool.Pool) {
