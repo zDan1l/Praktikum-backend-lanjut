@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"pemrograman-code/app/model"
 	"pemrograman-code/app/repository"
 	"pemrograman-code/app/service"
 	"pemrograman-code/helper"
@@ -119,6 +120,15 @@ func Register(app *fiber.App, deps Dependencies) {
 	admin.Get("/queue", middleware.RequireAllowed(deps.Permissions, "queue:monitor"), deps.NotificationService.Monitor)
 }
 
+// registerHealth godoc
+//
+// @Summary Memeriksa kesehatan server, PostgreSQL, dan MongoDB
+// @Description Dipakai healthcheck docker compose. Tidak memerlukan token.
+// @Tags health
+// @Produce json
+// @Success 200 {object} model.WebResponse{data=model.HealthStatus}
+// @Failure 503 {object} model.ErrorResponse "PostgreSQL atau MongoDB tidak dapat dihubungi"
+// @Router /health [get]
 func registerHealth(api fiber.Router, pool *pgxpool.Pool, mongoClient *mongo.Client) {
 	api.Get("/health", func(c *fiber.Ctx) error {
 		ctx, cancel := context.WithTimeout(c.UserContext(), 2*time.Second)
@@ -131,6 +141,6 @@ func registerHealth(api fiber.Router, pool *pgxpool.Pool, mongoClient *mongo.Cli
 				return helper.ServiceUnavailable("MongoDB tidak dapat dihubungi")
 			}
 		}
-		return helper.Success(c, fiber.StatusOK, "server, PostgreSQL, dan MongoDB berjalan", fiber.Map{"timestamp": time.Now()})
+		return helper.Success(c, fiber.StatusOK, "server, PostgreSQL, dan MongoDB berjalan", model.HealthStatus{Timestamp: time.Now()})
 	})
 }

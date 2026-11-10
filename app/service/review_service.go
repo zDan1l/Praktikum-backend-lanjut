@@ -198,6 +198,18 @@ func containsTag(tags []string, tag string) bool {
 
 // ---------- GET /courses/:id/reviews/summary ----------
 
+// Summary godoc
+//
+// @Summary Ringkasan ulasan sebuah kelas
+// @Description Jumlah ulasan, rata-rata rating, sebaran rating (indeks 0 = bintang 1), dan lima tag terbanyak.
+// @Tags reviews
+// @Produce json
+// @Param id path int true "ID kelas"
+// @Success 200 {object} model.WebResponse{data=model.ReviewSummary}
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 404 {object} model.ErrorResponse "Kelas tidak ditemukan"
+// @Security BearerAuth
+// @Router /courses/{id}/reviews/summary [get]
 func (s *ReviewService) Summary(c *fiber.Ctx) error {
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
@@ -218,6 +230,17 @@ func (s *ReviewService) Summary(c *fiber.Ctx) error {
 
 // ---------- GET /reviews/:id ----------
 
+// Get godoc
+//
+// @Summary Detail satu ulasan beserta balasannya
+// @Tags reviews
+// @Produce json
+// @Param id path string true "ID ulasan (ObjectID)"
+// @Success 200 {object} model.WebResponse{data=model.Review}
+// @Failure 400 {object} model.ErrorResponse "ID bukan ObjectID yang valid"
+// @Failure 404 {object} model.ErrorResponse
+// @Security BearerAuth
+// @Router /reviews/{id} [get]
 func (s *ReviewService) Get(c *fiber.Ctx) error {
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
@@ -231,6 +254,22 @@ func (s *ReviewService) Get(c *fiber.Ctx) error {
 
 // ---------- PATCH /reviews/:id ----------
 
+// Update godoc
+//
+// @Summary Mengubah ulasan milik sendiri
+// @Description Field yang tidak dikirim tidak diubah. Hanya penulis ulasan yang boleh mengubah.
+// @Tags reviews
+// @Accept json
+// @Produce json
+// @Param id path string true "ID ulasan (ObjectID)"
+// @Param body body model.UpdateReviewRequest true "Field yang diubah"
+// @Success 200 {object} model.WebResponse{data=model.Review}
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 403 {object} model.ErrorResponse "Bukan penulis ulasan"
+// @Failure 404 {object} model.ErrorResponse
+// @Failure 422 {object} model.ErrorResponse
+// @Security BearerAuth
+// @Router /reviews/{id} [patch]
 func (s *ReviewService) Update(c *fiber.Ctx) error {
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
@@ -269,6 +308,19 @@ func (s *ReviewService) Update(c *fiber.Ctx) error {
 //
 // Penulis boleh menghapus ulasannya sendiri. Role dengan permission
 // review:moderate boleh menghapus ulasan siapa pun.
+
+// Delete godoc
+//
+// @Summary Menghapus ulasan
+// @Description Penulis boleh menghapus ulasannya sendiri. Role dengan permission review:moderate boleh menghapus ulasan siapa pun.
+// @Tags reviews
+// @Param id path string true "ID ulasan (ObjectID)"
+// @Success 204 "Berhasil dihapus; tanpa body"
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 403 {object} model.ErrorResponse "Bukan penulis dan bukan moderator"
+// @Failure 404 {object} model.ErrorResponse
+// @Security BearerAuth
+// @Router /reviews/{id} [delete]
 func (s *ReviewService) Delete(c *fiber.Ctx) error {
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
@@ -286,6 +338,19 @@ func (s *ReviewService) Delete(c *fiber.Ctx) error {
 
 // ---------- POST /reviews/:id/helpful ----------
 
+// Vote godoc
+//
+// @Summary Menandai ulasan sebagai membantu
+// @Description Satu suara per mahasiswa per ulasan. Kode error 409: OWN_REVIEW, ALREADY_VOTED.
+// @Tags reviews
+// @Produce json
+// @Param id path string true "ID ulasan (ObjectID)"
+// @Success 200 {object} model.WebResponse{data=model.Review}
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 404 {object} model.ErrorResponse
+// @Failure 409 {object} model.ErrorResponse "OWN_REVIEW atau ALREADY_VOTED"
+// @Security BearerAuth
+// @Router /reviews/{id}/helpful [post]
 func (s *ReviewService) Vote(c *fiber.Ctx) error {
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
@@ -303,6 +368,22 @@ func (s *ReviewService) Vote(c *fiber.Ctx) error {
 
 // ---------- POST /reviews/:id/replies ----------
 
+// Reply godoc
+//
+// @Summary Membalas sebuah ulasan
+// @Description Satu ulasan paling banyak memiliki 20 balasan.
+// @Tags reviews
+// @Accept json
+// @Produce json
+// @Param id path string true "ID ulasan (ObjectID)"
+// @Param body body model.CreateReplyRequest true "Isi balasan"
+// @Success 201 {object} model.WebResponse{data=model.Review}
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 404 {object} model.ErrorResponse
+// @Failure 409 {object} model.ErrorResponse "REPLY_LIMIT"
+// @Failure 422 {object} model.ErrorResponse
+// @Security BearerAuth
+// @Router /reviews/{id}/replies [post]
 func (s *ReviewService) Reply(c *fiber.Ctx) error {
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()

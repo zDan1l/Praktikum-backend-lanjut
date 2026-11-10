@@ -20,3 +20,9 @@ type ErrorResponse struct {
 	Fields    map[string]string `json:"fields,omitempty"`
 	RequestID string            `json:"request_id,omitempty"`
 }
+
+// HealthStatus adalah isi field data pada GET /health. Sebelumnya disusun
+// dengan fiber.Map; diberi nama agar dapat didokumentasikan (Modul 12, D.3).
+type HealthStatus struct {
+	Timestamp time.Time `json:"timestamp"`
+}

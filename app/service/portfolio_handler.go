@@ -96,6 +96,17 @@ func portfolioDariRequest(studentID int, req model.PortfolioRequest) (model.Port
 	return portofolio, nil
 }
 
+// Get godoc
+//
+// @Summary Portofolio milik seorang student
+// @Tags portfolios
+// @Produce json
+// @Param id path int true "ID student"
+// @Success 200 {object} model.WebResponse{data=model.Portfolio}
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 404 {object} model.ErrorResponse "Student tidak ada atau portofolio belum dibuat"
+// @Security BearerAuth
+// @Router /students/{id}/portfolio [get]
 func (h *PortfolioHandler) Get(c *fiber.Ctx) error {
 	id, valid := helper.ParamID(c)
 	if !valid {
@@ -115,6 +126,20 @@ func (h *PortfolioHandler) Get(c *fiber.Ctx) error {
 	return helper.Success(c, fiber.StatusOK, "portofolio ditemukan", portofolio)
 }
 
+// Replace godoc
+//
+// @Summary Membuat atau mengganti portofolio student
+// @Tags portfolios
+// @Accept json
+// @Produce json
+// @Param id path int true "ID student"
+// @Param body body model.PortfolioRequest true "Isi portofolio"
+// @Success 200 {object} model.WebResponse{data=model.Portfolio}
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 404 {object} model.ErrorResponse
+// @Failure 422 {object} model.ErrorResponse
+// @Security BearerAuth
+// @Router /students/{id}/portfolio [put]
 func (h *PortfolioHandler) Replace(c *fiber.Ctx) error {
 	id, valid := helper.ParamID(c)
 	if !valid {
@@ -147,6 +172,22 @@ func (h *PortfolioHandler) Replace(c *fiber.Ctx) error {
 	return helper.Success(c, fiber.StatusOK, "portofolio berhasil disimpan", hasil)
 }
 
+// AddProject godoc
+//
+// @Summary Menambah satu proyek ke portofolio
+// @Description Satu portofolio paling banyak berisi 20 proyek.
+// @Tags portfolios
+// @Accept json
+// @Produce json
+// @Param id path int true "ID student"
+// @Param body body model.ProjectRequest true "Data proyek"
+// @Success 201 {object} model.WebResponse{data=model.Portfolio}
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 404 {object} model.ErrorResponse
+// @Failure 409 {object} model.ErrorResponse "Portofolio sudah berisi 20 proyek"
+// @Failure 422 {object} model.ErrorResponse
+// @Security BearerAuth
+// @Router /students/{id}/portfolio/projects [post]
 func (h *PortfolioHandler) AddProject(c *fiber.Ctx) error {
 	id, valid := helper.ParamID(c)
 	if !valid {
@@ -180,6 +221,17 @@ func (h *PortfolioHandler) AddProject(c *fiber.Ctx) error {
 		"/api/v1/students/"+strconv.Itoa(id)+"/portfolio")
 }
 
+// DeleteProject godoc
+//
+// @Summary Menghapus satu proyek dari portofolio
+// @Tags portfolios
+// @Param id path int true "ID student"
+// @Param projectId path string true "ObjectID proyek (24 karakter heksadesimal)"
+// @Success 204 "Berhasil dihapus; tanpa body"
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 404 {object} model.ErrorResponse
+// @Security BearerAuth
+// @Router /students/{id}/portfolio/projects/{projectId} [delete]
 func (h *PortfolioHandler) DeleteProject(c *fiber.Ctx) error {
 	id, valid := helper.ParamID(c)
 	if !valid {
@@ -203,6 +255,15 @@ func (h *PortfolioHandler) DeleteProject(c *fiber.Ctx) error {
 	return helper.NoContent(c)
 }
 
+// TopTechnologies godoc
+//
+// @Summary Sepuluh teknologi yang paling banyak dipakai di seluruh portofolio
+// @Tags portfolios
+// @Produce json
+// @Success 200 {object} model.WebResponse{data=[]model.TechnologyStat}
+// @Failure 401 {object} model.ErrorResponse
+// @Security BearerAuth
+// @Router /portfolios/stats/technologies [get]
 func (h *PortfolioHandler) TopTechnologies(c *fiber.Ctx) error {
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()

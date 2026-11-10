@@ -1,5 +1,49 @@
 basePath: /api/v1
 definitions:
+  model.Certificate:
+    properties:
+      date:
+        type: string
+      issuer:
+        type: string
+      name:
+        type: string
+    type: object
+  model.CertificateRequest:
+    properties:
+      date:
+        type: string
+      issuer:
+        maxLength: 150
+        minLength: 2
+        type: string
+      name:
+        maxLength: 150
+        minLength: 3
+        type: string
+    required:
+    - date
+    - issuer
+    - name
+    type: object
+  model.Comment:
+    properties:
+      article_id:
+        type: integer
+      author_id:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+    type: object
+  model.CommentRequest:
+    properties:
+      content:
+        type: string
+    type: object
   model.Course:
     properties:
       code:
@@ -16,6 +60,15 @@ definitions:
         type: integer
       version:
         type: integer
+    type: object
+  model.CreateReplyRequest:
+    properties:
+      body:
+        maxLength: 500
+        minLength: 2
+        type: string
+    required:
+    - body
     type: object
   model.CreateReviewRequest:
     properties:
@@ -36,6 +89,15 @@ definitions:
     - comment
     - rating
     type: object
+  model.CursorMeta:
+    properties:
+      has_more:
+        type: boolean
+      limit:
+        type: integer
+      next_cursor:
+        type: string
+    type: object
   model.ErrorResponse:
     properties:
       code:
@@ -50,6 +112,11 @@ definitions:
         type: string
       success:
         type: boolean
+    type: object
+  model.HealthStatus:
+    properties:
+      timestamp:
+        type: string
     type: object
   model.LoginRequest:
     properties:
@@ -99,6 +166,100 @@ definitions:
         type: string
       user_id:
         type: integer
+    type: object
+  model.PatchStudentRequest:
+    properties:
+      grade:
+        maximum: 100
+        minimum: 0
+        type: number
+      is_active:
+        type: boolean
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      nim:
+        type: string
+    type: object
+  model.Portfolio:
+    properties:
+      bio:
+        type: string
+      certificates:
+        items:
+          $ref: '#/definitions/model.Certificate'
+        type: array
+      headline:
+        type: string
+      id:
+        type: string
+      projects:
+        items:
+          $ref: '#/definitions/model.Project'
+        type: array
+      student_id:
+        type: integer
+    type: object
+  model.PortfolioRequest:
+    properties:
+      bio:
+        maxLength: 2000
+        type: string
+      certificates:
+        items:
+          $ref: '#/definitions/model.CertificateRequest'
+        type: array
+      headline:
+        maxLength: 150
+        minLength: 3
+        type: string
+      projects:
+        items:
+          $ref: '#/definitions/model.ProjectRequest'
+        maxItems: 20
+        type: array
+    required:
+    - headline
+    type: object
+  model.Project:
+    properties:
+      id:
+        type: string
+      link:
+        type: string
+      technologies:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+      year:
+        type: integer
+    type: object
+  model.ProjectRequest:
+    properties:
+      link:
+        maxLength: 500
+        type: string
+      technologies:
+        items:
+          type: string
+        maxItems: 20
+        minItems: 1
+        type: array
+      title:
+        maxLength: 150
+        minLength: 3
+        type: string
+      year:
+        maximum: 2100
+        minimum: 1900
+        type: integer
+    required:
+    - technologies
+    - title
+    - year
     type: object
   model.QueueInfo:
     properties:
@@ -222,6 +383,57 @@ definitions:
       next_before:
         type: string
     type: object
+  model.ReviewSummary:
+    properties:
+      average_rating:
+        type: number
+      count:
+        type: integer
+      course_id:
+        type: integer
+      distribution:
+        description: indeks 0 = bintang 1
+        items:
+          type: integer
+        type: array
+      top_tags:
+        items:
+          $ref: '#/definitions/model.TagCount'
+        type: array
+    type: object
+  model.Student:
+    properties:
+      created_at:
+        type: string
+      grade:
+        type: number
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      nim:
+        type: string
+    type: object
+  model.StudentRequest:
+    properties:
+      grade:
+        maximum: 100
+        minimum: 0
+        type: number
+      is_active:
+        type: boolean
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      nim:
+        type: string
+    required:
+    - name
+    - nim
+    type: object
   model.SwapRequest:
     properties:
       from_course_id:
@@ -231,6 +443,20 @@ definitions:
     required:
     - from_course_id
     - to_course_id
+    type: object
+  model.TagCount:
+    properties:
+      count:
+        type: integer
+      tag:
+        type: string
+    type: object
+  model.TechnologyStat:
+    properties:
+      count:
+        type: integer
+      technology:
+        type: string
     type: object
   model.TokenPair:
     properties:
@@ -254,6 +480,22 @@ definitions:
     required:
     - version
     type: object
+  model.UpdateReviewRequest:
+    properties:
+      comment:
+        maxLength: 1000
+        minLength: 10
+        type: string
+      rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+      tags:
+        items:
+          type: string
+        maxItems: 5
+        type: array
+    type: object
   model.User:
     properties:
       created_at:
@@ -270,6 +512,16 @@ definitions:
         type: integer
       username:
         type: string
+    type: object
+  model.WebCursorResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+      meta:
+        $ref: '#/definitions/model.CursorMeta'
+      success:
+        type: boolean
     type: object
   model.WebResponse:
     properties:
@@ -315,6 +567,181 @@ paths:
       summary: Keadaan outbox dan queue (admin)
       tags:
       - admin
+  /articles/{articleId}/comments:
+    get:
+      description: Membutuhkan permission comment:read.
+      parameters:
+      - description: ID artikel
+        in: path
+        name: articleId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Comment'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Artikel tidak ditemukan
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Daftar komentar sebuah artikel
+      tags:
+      - comments
+    post:
+      consumes:
+      - application/json
+      description: Membutuhkan permission comment:create.
+      parameters:
+      - description: ID artikel
+        in: path
+        name: articleId
+        required: true
+        type: integer
+      - description: Isi komentar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CommentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Comment'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Artikel tidak ditemukan
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Menulis komentar pada sebuah artikel
+      tags:
+      - comments
+  /articles/{articleId}/comments/{id}:
+    delete:
+      description: Membutuhkan permission comment:delete. Selain admin, hanya pemilik
+        komentar yang boleh menghapus.
+      parameters:
+      - description: ID artikel
+        in: path
+        name: articleId
+        required: true
+        type: integer
+      - description: ID komentar
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Berhasil dihapus; tanpa body
+        "403":
+          description: Tidak punya permission atau bukan pemilik
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Menghapus komentar
+      tags:
+      - comments
+    put:
+      consumes:
+      - application/json
+      description: Membutuhkan permission comment:update. Selain admin, hanya pemilik
+        komentar yang boleh mengubah.
+      parameters:
+      - description: ID artikel
+        in: path
+        name: articleId
+        required: true
+        type: integer
+      - description: ID komentar
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Isi komentar baru
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Comment'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "403":
+          description: Tidak punya permission atau bukan pemilik
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mengubah komentar
+      tags:
+      - comments
   /auth/login:
     post:
       consumes:
@@ -348,6 +775,56 @@ paths:
           schema:
             $ref: '#/definitions/model.ErrorResponse'
       summary: Login dan mendapatkan pasangan token
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Refresh token yang dikirim dicabut sehingga tidak dapat ditukar
+        lagi. Access token tetap berlaku sampai kedaluwarsa.
+      parameters:
+      - description: Refresh token yang akan dicabut
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.WebResponse'
+        "400":
+          description: Body bukan JSON yang valid
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Logout dan mencabut refresh token
+      tags:
+      - auth
+  /auth/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.User'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Profil akun yang sedang login
       tags:
       - auth
   /auth/refresh:
@@ -673,6 +1150,41 @@ paths:
       summary: Menulis ulasan untuk sebuah kelas
       tags:
       - reviews
+  /courses/{id}/reviews/summary:
+    get:
+      description: Jumlah ulasan, rata-rata rating, sebaran rating (indeks 0 = bintang
+        1), dan lima tag terbanyak.
+      parameters:
+      - description: ID kelas
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ReviewSummary'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Kelas tidak ditemukan
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Ringkasan ulasan sebuah kelas
+      tags:
+      - reviews
   /courses/mine:
     get:
       produces:
@@ -738,6 +1250,28 @@ paths:
       summary: Pindah kelas
       tags:
       - courses
+  /health:
+    get:
+      description: Dipakai healthcheck docker compose. Tidak memerlukan token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.HealthStatus'
+              type: object
+        "503":
+          description: PostgreSQL atau MongoDB tidak dapat dihubungi
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Memeriksa kesehatan server, PostgreSQL, dan MongoDB
+      tags:
+      - health
   /notifications/mine:
     get:
       produces:
@@ -763,6 +1297,639 @@ paths:
       summary: Notifikasi milik mahasiswa yang sedang login
       tags:
       - notifications
+  /portfolios/stats/technologies:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.TechnologyStat'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Sepuluh teknologi yang paling banyak dipakai di seluruh portofolio
+      tags:
+      - portfolios
+  /reviews/{id}:
+    delete:
+      description: Penulis boleh menghapus ulasannya sendiri. Role dengan permission
+        review:moderate boleh menghapus ulasan siapa pun.
+      parameters:
+      - description: ID ulasan (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Berhasil dihapus; tanpa body
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "403":
+          description: Bukan penulis dan bukan moderator
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Menghapus ulasan
+      tags:
+      - reviews
+    get:
+      parameters:
+      - description: ID ulasan (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Review'
+              type: object
+        "400":
+          description: ID bukan ObjectID yang valid
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Detail satu ulasan beserta balasannya
+      tags:
+      - reviews
+    patch:
+      consumes:
+      - application/json
+      description: Field yang tidak dikirim tidak diubah. Hanya penulis ulasan yang
+        boleh mengubah.
+      parameters:
+      - description: ID ulasan (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Field yang diubah
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Review'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "403":
+          description: Bukan penulis ulasan
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mengubah ulasan milik sendiri
+      tags:
+      - reviews
+  /reviews/{id}/helpful:
+    post:
+      description: 'Satu suara per mahasiswa per ulasan. Kode error 409: OWN_REVIEW,
+        ALREADY_VOTED.'
+      parameters:
+      - description: ID ulasan (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Review'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "409":
+          description: OWN_REVIEW atau ALREADY_VOTED
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Menandai ulasan sebagai membantu
+      tags:
+      - reviews
+  /reviews/{id}/replies:
+    post:
+      consumes:
+      - application/json
+      description: Satu ulasan paling banyak memiliki 20 balasan.
+      parameters:
+      - description: ID ulasan (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Isi balasan
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateReplyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Review'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "409":
+          description: REPLY_LIMIT
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Membalas sebuah ulasan
+      tags:
+      - reviews
+  /students:
+    get:
+      description: 'Kirim meta.next_cursor sebagai parameter cursor untuk halaman
+        berikutnya. Header Accept: text/csv menghasilkan CSV.'
+      parameters:
+      - default: 10
+        description: Jumlah per halaman, 1 sampai 100
+        in: query
+        name: limit
+        type: integer
+      - description: Cari berdasarkan nama atau NIM
+        in: query
+        name: search
+        type: string
+      - description: Saring berdasarkan status aktif
+        in: query
+        name: is_active
+        type: boolean
+      - description: Cursor dari meta.next_cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebCursorResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Student'
+                  type: array
+              type: object
+        "400":
+          description: Cursor atau limit tidak valid
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "406":
+          description: Format pada header Accept tidak didukung
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Daftar student dengan cursor pagination
+      tags:
+      - students
+    post:
+      consumes:
+      - application/json
+      description: NIM wajib 10 digit angka dan unik.
+      parameters:
+      - description: Data student
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.StudentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              description: URL student yang baru dibuat
+              type: string
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Student'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "409":
+          description: NIM sudah dipakai
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Menambah student
+      tags:
+      - students
+  /students/{id}:
+    delete:
+      parameters:
+      - description: ID student
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Berhasil dihapus; tanpa body
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Menghapus student
+      tags:
+      - students
+    get:
+      parameters:
+      - description: ID student
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Student'
+              type: object
+        "400":
+          description: ID bukan angka positif
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Detail satu student
+      tags:
+      - students
+    patch:
+      consumes:
+      - application/json
+      description: Field yang tidak dikirim tidak diubah.
+      parameters:
+      - description: ID student
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Field yang diubah
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.PatchStudentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Student'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "409":
+          description: NIM sudah dipakai
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mengubah sebagian data student
+      tags:
+      - students
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID student
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data student lengkap
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.StudentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Student'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "409":
+          description: NIM sudah dipakai
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mengganti seluruh data student
+      tags:
+      - students
+  /students/{id}/portfolio:
+    get:
+      parameters:
+      - description: ID student
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Portfolio'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Student tidak ada atau portofolio belum dibuat
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Portofolio milik seorang student
+      tags:
+      - portfolios
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID student
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Isi portofolio
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.PortfolioRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Portfolio'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Membuat atau mengganti portofolio student
+      tags:
+      - portfolios
+  /students/{id}/portfolio/projects:
+    post:
+      consumes:
+      - application/json
+      description: Satu portofolio paling banyak berisi 20 proyek.
+      parameters:
+      - description: ID student
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data proyek
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.ProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/model.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Portfolio'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "409":
+          description: Portofolio sudah berisi 20 proyek
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Menambah satu proyek ke portofolio
+      tags:
+      - portfolios
+  /students/{id}/portfolio/projects/{projectId}:
+    delete:
+      parameters:
+      - description: ID student
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ObjectID proyek (24 karakter heksadesimal)
+        in: path
+        name: projectId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Berhasil dihapus; tanpa body
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Menghapus satu proyek dari portofolio
+      tags:
+      - portfolios
 securityDefinitions:
   BearerAuth:
     description: 'Isi dengan: Bearer <access_token>'

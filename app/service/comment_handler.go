@@ -49,6 +49,19 @@ func (h *CommentHandler) ambilKomentar(c *fiber.Ctx) (int, int, model.Comment, b
 	return articleID, id, comment, true
 }
 
+// List godoc
+//
+// @Summary Daftar komentar sebuah artikel
+// @Description Membutuhkan permission comment:read.
+// @Tags comments
+// @Produce json
+// @Param articleId path int true "ID artikel"
+// @Success 200 {object} model.WebResponse{data=[]model.Comment}
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 403 {object} model.ErrorResponse
+// @Failure 404 {object} model.ErrorResponse "Artikel tidak ditemukan"
+// @Security BearerAuth
+// @Router /articles/{articleId}/comments [get]
 func (h *CommentHandler) List(c *fiber.Ctx) error {
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
@@ -72,6 +85,22 @@ func (h *CommentHandler) List(c *fiber.Ctx) error {
 	return helper.Success(c, fiber.StatusOK, "daftar komentar berhasil diambil", comments)
 }
 
+// Create godoc
+//
+// @Summary Menulis komentar pada sebuah artikel
+// @Description Membutuhkan permission comment:create.
+// @Tags comments
+// @Accept json
+// @Produce json
+// @Param articleId path int true "ID artikel"
+// @Param body body model.CommentRequest true "Isi komentar"
+// @Success 201 {object} model.WebResponse{data=model.Comment}
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 403 {object} model.ErrorResponse
+// @Failure 404 {object} model.ErrorResponse "Artikel tidak ditemukan"
+// @Failure 422 {object} model.ErrorResponse
+// @Security BearerAuth
+// @Router /articles/{articleId}/comments [post]
 func (h *CommentHandler) Create(c *fiber.Ctx) error {
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
@@ -111,6 +140,23 @@ func (h *CommentHandler) Create(c *fiber.Ctx) error {
 		"/api/v1/articles/"+strconv.Itoa(articleID)+"/comments/"+strconv.Itoa(comment.ID))
 }
 
+// Update godoc
+//
+// @Summary Mengubah komentar
+// @Description Membutuhkan permission comment:update. Selain admin, hanya pemilik komentar yang boleh mengubah.
+// @Tags comments
+// @Accept json
+// @Produce json
+// @Param articleId path int true "ID artikel"
+// @Param id path int true "ID komentar"
+// @Param body body model.CommentRequest true "Isi komentar baru"
+// @Success 200 {object} model.WebResponse{data=model.Comment}
+// @Failure 400 {object} model.ErrorResponse
+// @Failure 403 {object} model.ErrorResponse "Tidak punya permission atau bukan pemilik"
+// @Failure 404 {object} model.ErrorResponse
+// @Failure 422 {object} model.ErrorResponse
+// @Security BearerAuth
+// @Router /articles/{articleId}/comments/{id} [put]
 func (h *CommentHandler) Update(c *fiber.Ctx) error {
 	_, id, comment, ok := h.ambilKomentar(c)
 	if !ok {
@@ -145,6 +191,18 @@ func (h *CommentHandler) Update(c *fiber.Ctx) error {
 	return helper.Success(c, fiber.StatusOK, "komentar berhasil diperbarui", hasil)
 }
 
+// Delete godoc
+//
+// @Summary Menghapus komentar
+// @Description Membutuhkan permission comment:delete. Selain admin, hanya pemilik komentar yang boleh menghapus.
+// @Tags comments
+// @Param articleId path int true "ID artikel"
+// @Param id path int true "ID komentar"
+// @Success 204 "Berhasil dihapus; tanpa body"
+// @Failure 403 {object} model.ErrorResponse "Tidak punya permission atau bukan pemilik"
+// @Failure 404 {object} model.ErrorResponse
+// @Security BearerAuth
+// @Router /articles/{articleId}/comments/{id} [delete]
 func (h *CommentHandler) Delete(c *fiber.Ctx) error {
 	_, id, comment, ok := h.ambilKomentar(c)
 	if !ok {
