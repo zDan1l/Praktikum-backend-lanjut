@@ -12,7 +12,13 @@ import (
 	"pemrograman-code/helper"
 )
 
-func RequireAuth(jwtManager *helper.JWTManager, users *repository.UserRepository) fiber.Handler {
+// RequireAuth memvalidasi access token.
+//
+// Bila users diisi (production), user dan role terkini dibaca ulang dari
+// database supaya akun yang dinonaktifkan atau diturunkan role-nya langsung
+// terdampak. Bila users nil (component test yang tidak memasang database),
+// identitas diambil dari klaim token yang tanda tangannya sudah diverifikasi.
+func RequireAuth(jwtManager *helper.JWTManager, users repository.UserRepository) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		header := c.Get(fiber.HeaderAuthorization)
 		parts := strings.SplitN(header, " ", 2)
@@ -28,6 +34,11 @@ func RequireAuth(jwtManager *helper.JWTManager, users *repository.UserRepository
 				return helper.Unauthorized("access token kedaluwarsa")
 			}
 			return helper.Unauthorized("access token tidak valid")
+		}
+
+		if users == nil {
+			c.Locals(helper.LocalsAuthUser, claims)
+			return c.Next()
 		}
 
 		// Ambil user + role terkini dari DB, bukan cuma dari isi JWT,

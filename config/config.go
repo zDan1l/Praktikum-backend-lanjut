@@ -55,7 +55,7 @@ func NewApp(logger *slog.Logger, deps route.Dependencies) *fiber.App {
 	})
 
 	middleware.Register(app, logger, GetEnv("ALLOWED_ORIGINS", ""))
-	route.Setup(app, deps)
+	route.Register(app, deps)
 
 	app.Use(func(c *fiber.Ctx) error {
 		return helper.NotFound("endpoint tidak ditemukan")

@@ -39,16 +39,21 @@ CREATE INDEX IF NOT EXISTS enrollments_course_idx ON enrollments (course_id);
 -- Kelas contoh dengan id tetap 1..9 agar cocok dengan uji Bagian C.
 -- Uji C.1 menyebut kelas 2 = "IF102 Basis Data Lanjut" dan kelas 4 =
 -- "IF302 Keamanan Informasi"; keduanya dikunci di sini.
-INSERT INTO courses (id, code, name, capacity) VALUES
-    (1, 'IF101', 'Algoritma dan Pemrograman', 40),
-    (2, 'IF102', 'Basis Data Lanjut',         40),
-    (3, 'IF201', 'Jaringan Komputer',          40),
-    (4, 'IF302', 'Keamanan Informasi',         40),
-    (5, 'IF203', 'Sistem Operasi',             40),
-    (6, 'IF204', 'Pemrograman Web',            40),
-    (7, 'IF305', 'Kecerdasan Buatan',          40),
-    (8, 'IF306', 'Komputasi Awan',             40),
-    (9, 'IF307', 'Rekayasa Perangkat Lunak',   40)
+--
+-- Kolom kuota sengaja TIDAK disebut (memakai DEFAULT 40): migration 010
+-- mengganti nama kolom capacity menjadi quota, dan seluruh migration
+-- dijalankan ulang oleh TestMain (Modul 12). INSERT yang menyebut nama kolom
+-- kuota akan gagal pada salah satu dari dua keadaan itu.
+INSERT INTO courses (id, code, name) VALUES
+    (1, 'IF101', 'Algoritma dan Pemrograman'),
+    (2, 'IF102', 'Basis Data Lanjut'),
+    (3, 'IF201', 'Jaringan Komputer'),
+    (4, 'IF302', 'Keamanan Informasi'),
+    (5, 'IF203', 'Sistem Operasi'),
+    (6, 'IF204', 'Pemrograman Web'),
+    (7, 'IF305', 'Kecerdasan Buatan'),
+    (8, 'IF306', 'Komputasi Awan'),
+    (9, 'IF307', 'Rekayasa Perangkat Lunak')
 ON CONFLICT (id) DO NOTHING;
 
 -- Sinkronkan sequence agar INSERT berikutnya tidak bentrok dengan id manual.

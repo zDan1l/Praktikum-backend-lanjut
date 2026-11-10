@@ -9,9 +9,9 @@ import (
 // string yang diketik ulang di banyak tempat, karena salah ketik pada nama
 // event tidak ditangkap compiler maupun database.
 const (
-	EventEnrollmentCreated = "enrollment.created"
-	EventEnrollmentDropped = "enrollment.dropped"
-	EventEnrollmentSwapped = "enrollment.swapped"
+	EventEnrollmentCreated  = "enrollment.created"
+	EventEnrollmentDropped  = "enrollment.dropped"
+	EventEnrollmentSwapped  = "enrollment.swapped"
 	EventCourseQuotaChanged = "course.quota_changed" // tugas mandiri D.2
 )
 
@@ -37,11 +37,11 @@ type EnrollmentEvent struct {
 	FromCourseCode string `json:"from_course_code,omitempty"`
 	FromCourseName string `json:"from_course_name,omitempty"`
 
-	// Dipakai event course.quota_changed (D.2):
-	//   NewCapacity  : kuota baru.
+	// Dipakai event course.quota_changed (D.2 Modul 11):
+	//   NewQuota     : kuota baru.
 	//   Participants : snapshot id seluruh peserta kelas pada saat kuota diubah.
 	// Satu event menghasilkan banyak notifikasi, satu per peserta.
-	NewCapacity  int   `json:"new_capacity,omitempty"`
+	NewQuota     int   `json:"new_quota,omitempty"`
 	Participants []int `json:"participants,omitempty"`
 }
 

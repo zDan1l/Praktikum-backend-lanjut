@@ -10,15 +10,24 @@ import (
 	"pemrograman-code/app/model"
 )
 
-type UserRepository struct {
+// UserRepository adalah kontrak akses data user. Service dan middleware
+// bergantung pada interface ini, bukan pada struct PostgreSQL, sehingga test
+// dapat menggantinya dengan fake (Modul 12, A.4).
+type UserRepository interface {
+	Create(ctx context.Context, u model.User) (model.User, error)
+	FindByID(ctx context.Context, id int) (model.User, error)
+	FindByUsername(ctx context.Context, username string) (model.User, error)
+}
+
+type userRepository struct {
 	pool *pgxpool.Pool
 }
 
-func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
-	return &UserRepository{pool: pool}
+func NewUserRepository(pool *pgxpool.Pool) UserRepository {
+	return &userRepository{pool: pool}
 }
 
-func (r *UserRepository) Create(ctx context.Context, u model.User) (model.User, error) {
+func (r *userRepository) Create(ctx context.Context, u model.User) (model.User, error) {
 	// User baru selalu diberi role viewer (default paling rendah hak aksesnya).
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO users (username, email, password, role_id, is_active)
@@ -36,7 +45,7 @@ func (r *UserRepository) Create(ctx context.Context, u model.User) (model.User, 
 	return u, nil
 }
 
-func (r *UserRepository) FindByID(ctx context.Context, id int) (model.User, error) {
+func (r *userRepository) FindByID(ctx context.Context, id int) (model.User, error) {
 	var u model.User
 	err := r.pool.QueryRow(ctx,
 		`SELECT u.id, u.username, u.email, u.password, u.role_id, r.name, u.is_active, u.created_at
@@ -51,7 +60,7 @@ func (r *UserRepository) FindByID(ctx context.Context, id int) (model.User, erro
 	return u, nil
 }
 
-func (r *UserRepository) FindByUsername(ctx context.Context, username string) (model.User, error) {
+func (r *userRepository) FindByUsername(ctx context.Context, username string) (model.User, error) {
 	var u model.User
 	err := r.pool.QueryRow(ctx,
 		`SELECT u.id, u.username, u.email, u.password, u.role_id, r.name, u.is_active, u.created_at

@@ -103,11 +103,22 @@ func startAPI(logger *slog.Logger, pool *pgxpool.Pool) *fiber.App {
 	portfolioRepo := repository.NewPortfolioRepository(mongoDB)
 	indexCtx, cancelIndex := context.WithTimeout(context.Background(), 10*time.Second)
 	err = portfolioRepo.EnsureIndexes(indexCtx)
+	if err == nil {
+		err = repository.EnsureReviewIndexes(indexCtx, mongoDB)
+	}
 	cancelIndex()
 	if err != nil {
-		logger.Error("gagal menyiapkan index portofolio", slog.String("error", err.Error()))
+		logger.Error("gagal menyiapkan index MongoDB", slog.String("error", err.Error()))
 		return nil
 	}
+
+	// Pemetaan role -> permission dibaca sekali saat menyala.
+	rawPerms, err := repository.NewRoleRepository(pool).LoadPermissions(context.Background())
+	if err != nil {
+		logger.Error("gagal memuat permission", slog.String("error", err.Error()))
+		return nil
+	}
+	permissions := helper.NewPermissionSet(rawPerms)
 
 	jwtManager := helper.NewJWTManager(
 		jwtSecret,
@@ -136,14 +147,17 @@ func startAPI(logger *slog.Logger, pool *pgxpool.Pool) *fiber.App {
 
 	app := config.NewApp(logger, route.Dependencies{
 		Pool:                pool,
+		Mongo:               mongoClient,
 		JWT:                 jwtManager,
 		Users:               userRepo,
+		Permissions:         permissions,
 		StudentHandler:      service.NewStudentHandler(studentRepo),
 		PortfolioHandler:    service.NewPortfolioHandler(portfolioRepo, studentRepo),
 		AuthService:         authService,
 		CommentHandler:      service.NewCommentHandler(repository.NewCommentRepository(pool)),
 		CourseService:       service.NewCourseService(courseRepo, outboxRepo, txManager),
 		NotificationService: service.NewNotificationService(notifRepo, outboxRepo, inspector),
+		ReviewService:       service.NewReviewService(repository.NewReviewRepository(mongoDB), courseRepo, permissions),
 	})
 
 	// Sumber daya milik API ditutup setelah server HTTP berhenti.

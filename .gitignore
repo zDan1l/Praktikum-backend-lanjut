@@ -1,12 +1,14 @@
 # Env
 .env
 .env.local
+.env.test
 
 # Go - binaries & build
 pemrograman-code
 pemrograman-code.exe
 *.exe
 *.out
+coverage.out
 *.test
 /bin/
 /dist/
@@ -34,5 +36,7 @@ logs/
 soal.txt
 example.txt
 curl-ex.txt
-docs/
+# Catatan pribadi per modul tidak di-commit; folder docs hasil swag DI-commit
+# karena aplikasi mengimpornya saat compile (Modul 12, Langkah 12).
+docs/modul*/
 reset11.sql

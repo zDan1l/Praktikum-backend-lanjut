@@ -20,7 +20,7 @@ import (
 // Karena itu method di sini menerima *asynq.Task, seperti method service lain
 // menerima *fiber.Ctx.
 type NotificationWorker struct {
-	users         *repository.UserRepository
+	users         repository.UserRepository
 	notifications *repository.NotificationRepository
 	tx            *repository.TxManager
 	mailer        helper.Mailer
@@ -28,7 +28,7 @@ type NotificationWorker struct {
 }
 
 func NewNotificationWorker(
-	users *repository.UserRepository,
+	users repository.UserRepository,
 	notifications *repository.NotificationRepository,
 	tx *repository.TxManager,
 	mailer helper.Mailer,

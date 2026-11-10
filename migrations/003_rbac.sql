@@ -43,9 +43,12 @@ ON CONFLICT DO NOTHING;
 
 -- editor: create, read, update, delete comment
 -- (update & delete dibatasi milik sendiri, dicek di service layer).
+-- Dibatasi resource 'comment': migration ini dijalankan ulang oleh TestMain
+-- (Modul 12), dan tanpa batasan ini editor ikut mendapat permission yang
+-- ditambahkan migration sesudahnya (queue, course, review).
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r CROSS JOIN permissions p
-WHERE r.name = 'editor'
+WHERE r.name = 'editor' AND p.resource = 'comment'
 ON CONFLICT DO NOTHING;
 
 -- viewer: hanya create dan read comment.

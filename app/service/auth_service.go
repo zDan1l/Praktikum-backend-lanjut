@@ -16,13 +16,13 @@ import (
 const refreshTokenBytes = 32
 
 type AuthService struct {
-	users      *repository.UserRepository
+	users      repository.UserRepository
 	tokens     *repository.TokenRepository
 	jwt        *helper.JWTManager
 	refreshTTL time.Duration
 }
 
-func NewAuthService(users *repository.UserRepository, tokens *repository.TokenRepository, jwtManager *helper.JWTManager, refreshTTL time.Duration) *AuthService {
+func NewAuthService(users repository.UserRepository, tokens *repository.TokenRepository, jwtManager *helper.JWTManager, refreshTTL time.Duration) *AuthService {
 	return &AuthService{users: users, tokens: tokens, jwt: jwtManager, refreshTTL: refreshTTL}
 }
 

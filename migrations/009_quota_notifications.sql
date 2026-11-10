@@ -15,5 +15,9 @@
 
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_outbox_unique;
 
+-- Dihapus dulu agar migration ini aman dijalankan berulang kali (TestMain
+-- Modul 12 menjalankan ulang seluruh migration sebelum integration test).
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_outbox_user_unique;
+
 ALTER TABLE notifications
     ADD CONSTRAINT notifications_outbox_user_unique UNIQUE (outbox_id, user_id);

@@ -27,6 +27,9 @@ func NewMongo(ctx context.Context) (*mongo.Client, *mongo.Database, error) {
 		return nil, nil, fmt.Errorf("gagal terhubung ke MongoDB: %w", err)
 	}
 
-	db := client.Database(config.GetEnv("MONGO_DB", "praktikum_backend"))
+	// MONGO_DATABASE dipakai docker-compose (Modul 12); MONGO_DB adalah nama
+	// lama di .env sejak Modul 7. Keduanya diterima.
+	name := config.GetEnv("MONGO_DATABASE", config.GetEnv("MONGO_DB", "praktikum_backend"))
+	db := client.Database(name)
 	return client, db, nil
 }
