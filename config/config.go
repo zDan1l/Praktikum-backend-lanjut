@@ -52,6 +52,11 @@ func NewApp(logger *slog.Logger, deps route.Dependencies) *fiber.App {
 		AppName:      GetEnv("APP_NAME", "Praktikum Backend Lanjut"),
 		ErrorHandler: errorHandler(logger),
 		BodyLimit:    1 * 1024 * 1024,
+		// Bawaan Fiber v2 adalah "tcp4" (hanya IPv4). Di dalam container
+		// Alpine, "localhost" diterjemahkan lebih dulu ke ::1 (IPv6), sehingga
+		// healthcheck "wget http://localhost:3000/..." pada docker-compose
+		// ditolak dan api selalu unhealthy. "tcp" mendengarkan IPv4 dan IPv6.
+		Network: fiber.NetworkTCP,
 	})
 
 	middleware.Register(app, logger, GetEnv("ALLOWED_ORIGINS", ""))
