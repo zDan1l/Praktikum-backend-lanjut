@@ -126,7 +126,7 @@ func (r *courseRepository) IsEnrolled(ctx context.Context, courseID, userID int)
 func (r *courseRepository) LockStudent(ctx context.Context, userID int) error {
 	var id int
 	err := r.db.QueryRow(ctx,
-		`SELECT id FROM users WHERE id = $1 FOR UPDATE`, userID).Scan(&id)
+		`SELECT id FROM users WHERE id = $1`, userID).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}

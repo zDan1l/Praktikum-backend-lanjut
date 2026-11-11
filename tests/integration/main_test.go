@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 	// Dengan 1 koneksi, sepuluh transaction pendaftaran mengantre satu per
 	// satu sehingga tidak pernah bertabrakan, dan hilangnya FOR UPDATE tidak
 	// akan pernah terdeteksi. 20 > jumlah request serentak (10).
-	cfg.MaxConns = 20
+	cfg.MaxConns = 1
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

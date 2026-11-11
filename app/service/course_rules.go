@@ -10,7 +10,7 @@ const MaxCreditsPerSemester = 24
 // Fungsi murni: tidak menyentuh database, sehingga setiap kombinasi angka
 // dapat diuji dalam hitungan milidetik (Modul 12, Langkah 1).
 func WithinCreditLimit(taken, adding int) bool {
-	return taken+adding <= MaxCreditsPerSemester
+	return taken+adding < MaxCreditsPerSemester
 }
 
 // CreditsAfterSwap menghitung total SKS setelah pindah dari kelas seberat
