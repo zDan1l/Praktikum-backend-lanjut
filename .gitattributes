@@ -1,0 +1,2 @@
+# Skrip shell harus selalu LF agar dapat dijalankan bash di Linux/macOS/Git Bash.
+*.sh text eol=lf
